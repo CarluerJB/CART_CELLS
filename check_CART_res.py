@@ -3,6 +3,8 @@ from random import seed
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 import sys
 import seaborn as sns
 from scipy import stats
@@ -22,9 +24,12 @@ histplot_multiple = "dodge"
 histplot_binwidth=0.05
 colors_palette = sns.color_palette("tab10", 4)
 ratio_sign = 10
-show_zero = False
+show_zero = True
 va_text_sign = 'top'
-plot_kind = "hist" # UMAP
+run_UMAP = False
+cell_width = 212
+cell_height = 22
+swatch_width = 48
 
 medianprops = dict(
     linewidth=4, 
@@ -40,6 +45,7 @@ boxprops = dict(
 data = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
 out_data = "/media/carluerj/Data/These/Results/GRN_inference/"
 compiled_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/"
+embedded_data_path = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/UMAP_embedding.npy"
 
 # Read data
 df = pd.read_table(data, sep="\t", header=0)
@@ -56,9 +62,12 @@ TG = sys.argv[1]
 compiled_res = compiled_res.loc[(compiled_res['AGI']==TG) & (compiled_res['sign']=='<=')]
 
 # RUN UMAP
-model = UMAP(n_components=2, min_dist=0.3, n_neighbors=30, metric="cosine")
-embedded_data = model.fit_transform(Y_norm)
-
+if run_UMAP:
+    model = UMAP(n_components=2, min_dist=0.3, n_neighbors=30, metric="correlation")
+    embedded_data = model.fit_transform(Y_norm)
+    np.save(embedded_data_path, embedded_data)
+else:
+    embedded_data = np.load(embedded_data_path)
 
 # if len(sys.argv)>2:
 #     TF_1 = sys.argv[2]
@@ -238,11 +247,9 @@ if nb_plot>0:
                     if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_-+_--']<0.001).to_numpy()[0]:
                         is_node3_mp_mm_sign = '***'
 
-if plot_kind=="hist":
-    figure, axis = plt.subplots(nb_plot, 3)
-    axis = axis.ravel()
-else:
-    figure, axis = plt.subplots(1, 1)
+
+figure, axis = plt.subplots(nb_plot, 3)
+axis = axis.ravel()
 # TF 1 
 TF_1_sup = Y.loc[X[TF_1] > lim_val_1, TG]
 TF_1_inf = Y.loc[X[TF_1] <= lim_val_1, TG]
@@ -250,53 +257,59 @@ TF_1_sup_norm = np.nan_to_num(np.log10(TF_1_sup.values), neginf=0)
 TF_1_inf_norm = np.nan_to_num(np.log10(TF_1_inf.values), neginf=0)
 
 if not show_zero:
-    TF_1_sup_norm[TF_1_sup_norm==0] = np.nan
-    TF_1_inf_norm[TF_1_inf_norm==0] = np.nan
+    TF_1_sup_norm[TF_1_sup==0] = np.nan
+    TF_1_inf_norm[TF_1_inf==0] = np.nan
 
-if plot_kind=="hist":
-    sns.histplot([TF_1_inf_norm, TF_1_sup_norm][::-1], 
-                    kde=kde, legend=False, ax=axis[0], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[:2][::-1])#, binwidth=0.1)
-    axis[0].legend(title='TF', labels=[TF_1 + '<= ' + str(lim_val_1) + "\n(" + str(len(TF_1_inf.index)) + " sample)", TF_1 + '> ' + str(lim_val_1) + "\n(" + str(len(TF_1_sup.index)) + " sample)"])
-    sns.violinplot(data=[TF_1_inf, TF_1_sup], 
-                    ax = axis[1], 
-                    showmeans=False, 
-                    showmedians=False, 
-                    showextrema=False)
-    axis[1].boxplot(
-        [TF_1_inf, TF_1_sup],
-        positions=[0, 1],
-        showfliers = True,
-        showcaps = True, labels=None)
-    # TODO add adaptative height
-    if is_node1_sign!=None:
-        x1, x2 = 0, 1
-        y, h, col = np.max([TF_1_inf.max(), TF_1_sup.max()]) + 2, 2, 'k'
-        axis[1].plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
-        axis[1].text((x1+x2)*.5, y+h, is_node1_sign, ha='center', va=va_text_sign, color=col)
+sns.histplot([TF_1_inf_norm if len(TF_1_inf_norm)>0 else np.nan, TF_1_sup_norm if len(TF_1_sup_norm)>0 else np.nan][::-1], 
+                kde=kde, legend=True, ax=axis[0], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[:2][::-1])#, binwidth=0.1)
+# axis[0].legend(title='TF', labels=[TF_1 + '<= ' + str(lim_val_1) + "\n(" + str(len(TF_1_inf.index)) + " sample)", TF_1 + '> ' + str(lim_val_1) + "\n(" + str(len(TF_1_sup.index)) + " sample)"])
+legend = axis[0].get_legend()
+handles = legend.legendHandles
+legend.remove()
+label_list = []
+handle_list = []
+label_list.append(TF_1 + '<= ' + str(lim_val_1) + "\n(" + str(len(TF_1_inf.index)) + " sample)")
+label_list.append(TF_1 + '> ' + str(lim_val_1) + "\n(" + str(len(TF_1_sup.index)) + " sample)")
+for i, elem in enumerate(label_list):
+    row = i
+    y = row * cell_height
+    swatch_start_x = cell_width
+    text_pos_x = cell_width + swatch_width + 7
+    axis[0].text(text_pos_x, y, elem, fontsize=14,
+        horizontalalignment='left',
+        verticalalignment='center')
+    handle_list.append(Rectangle(xy=(swatch_start_x, y-9), width=swatch_width,
+                height=18, facecolor=colors_palette[i], edgecolor='0.7'))
+axis[0].legend(handles=handle_list, labels=label_list)
 
-    axis[1].set_xticklabels(['', '', TF_1+'<=' + str(lim_val_1), TF_1+'>' + str(lim_val_1)])
-    cell_sup = list(set(Y_norm.index.values).intersection(set(TF_1_sup.index.values)))
-    cell_inf = list(set(Y_norm.index.values).intersection(set(TF_1_inf.index.values)))
 
-    i_cell_sup = [ind_dict[x] for x in cell_sup]
-    i_cell_inf = [ind_dict[x] for x in cell_inf]
+sns.violinplot(data=[TF_1_inf, TF_1_sup], 
+                ax = axis[1], 
+                showmeans=False, 
+                showmedians=False, 
+                showextrema=False)
+axis[1].boxplot(
+    [TF_1_inf, TF_1_sup],
+    positions=[0, 1],
+    showfliers = True,
+    showcaps = True, labels=None)
+# TODO add adaptative height
+if is_node1_sign!=None:
+    x1, x2 = 0, 1
+    y, h, col = np.max([TF_1_inf.max(), TF_1_sup.max()]) + 2, 2, 'k'
+    axis[1].plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
+    axis[1].text((x1+x2)*.5, y+h, is_node1_sign, ha='center', va=va_text_sign, color=col)
 
-    # plt.scatter(embedded_data[:,0], embedded_data[:,1], s=5, c="green", marker='.')
-    axis[2].scatter(x=embedded_data[:,0][i_cell_sup], y=embedded_data[:,1][i_cell_sup], s=3, color=colors_palette[:2][::-1][0], marker='.')
-    axis[2].scatter(x=embedded_data[:,0][i_cell_inf], y=embedded_data[:,1][i_cell_inf], s=3, color=colors_palette[:2][::-1][1], marker='.')
-else:
-    cell_sup = list(set(Y_norm.index.values).intersection(set(TF_1_sup.index.values)))
-    cell_inf = list(set(Y_norm.index.values).intersection(set(TF_1_inf.index.values)))
+axis[1].set_xticklabels(['', '', TF_1+'<=' + str(lim_val_1), TF_1+'>' + str(lim_val_1)])
+cell_sup = list(set(Y_norm.index.values).intersection(set(TF_1_sup.index.values)))
+cell_inf = list(set(Y_norm.index.values).intersection(set(TF_1_inf.index.values)))
 
-    i_cell_sup = [ind_dict[x] for x in cell_sup]
-    i_cell_inf = [ind_dict[x] for x in cell_inf]
-    model = UMAP(n_components=2, min_dist=0.3, n_neighbors=30, metric="cosine")
-    embedded_data = model.fit_transform(Y_norm)
+i_cell_sup = [ind_dict[x] for x in cell_sup]
+i_cell_inf = [ind_dict[x] for x in cell_inf]
 
-    # plt.scatter(embedded_data[:,0], embedded_data[:,1], s=5, c="green", marker='.')
-    plt.scatter(x=embedded_data[:,0][i_cell_sup], y=embedded_data[:,1][i_cell_sup], s=5, c="red", marker='.')
-    plt.scatter(x=embedded_data[:,0][i_cell_inf], y=embedded_data[:,1][i_cell_inf], s=5, c="blue", marker='.')
-    plt.show()
+# plt.scatter(embedded_data[:,0], embedded_data[:,1], s=5, c="green", marker='.')
+axis[2].scatter(x=embedded_data[:,0][i_cell_sup], y=embedded_data[:,1][i_cell_sup], s=3, color=colors_palette[:2][::-1][0], marker='.')
+axis[2].scatter(x=embedded_data[:,0][i_cell_inf], y=embedded_data[:,1][i_cell_inf], s=3, color=colors_palette[:2][::-1][1], marker='.')
 
 if show_first_layer_res:
     # TF1 + TF2
@@ -312,18 +325,38 @@ if show_first_layer_res:
     TF_1_inf_TF_2_inf_norm = np.nan_to_num(np.log10(TF_1_inf_TF_2_inf), neginf=0)
 
     if not show_zero:
-        TF_1_sup_TF_2_sup_norm[TF_1_sup_TF_2_sup_norm==0] = np.nan
-        TF_1_sup_TF_2_inf_norm[TF_1_sup_TF_2_inf_norm==0] = np.nan
-        TF_1_inf_TF_2_sup_norm[TF_1_inf_TF_2_sup_norm==0] = np.nan
-        TF_1_inf_TF_2_inf_norm[TF_1_inf_TF_2_inf_norm==0] = np.nan
+        TF_1_sup_TF_2_sup_norm[TF_1_sup_TF_2_sup==0] = np.nan
+        TF_1_sup_TF_2_inf_norm[TF_1_sup_TF_2_inf==0] = np.nan
+        TF_1_inf_TF_2_sup_norm[TF_1_inf_TF_2_sup==0] = np.nan
+        TF_1_inf_TF_2_inf_norm[TF_1_inf_TF_2_inf==0] = np.nan
 
     sns.histplot(data = [TF_1_inf_TF_2_inf_norm, TF_1_inf_TF_2_sup_norm, TF_1_sup_TF_2_inf_norm, TF_1_sup_TF_2_sup_norm][::-1],
-                kde=kde, legend=False, ax=axis[3], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[::-1])
-    axis[3].legend(title='TF', labels=[
-                                        TF_1 + '-' + TF_2 + '-' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " sample)", 
-                                        TF_1 + '-' + TF_2 + '+' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " sample)", 
-                                        TF_1 + '+' + TF_2 + '-' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " sample)", 
-                                        TF_1 + '+' + TF_2 + '+' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " sample)"])
+                kde=kde, legend=True, ax=axis[3], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[::-1])
+    legend = axis[3].get_legend()
+    handles = legend.legendHandles
+    legend.remove()
+    label_list = []
+    handle_list = []
+    label_list.append(TF_1 + '-' + TF_2 + '-' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " sample)")
+    label_list.append(TF_1 + '-' + TF_2 + '+' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " sample)")
+    label_list.append(TF_1 + '+' + TF_2 + '-' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " sample)")
+    label_list.append(TF_1 + '+' + TF_2 + '+' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " sample)")
+    for i, elem in enumerate(label_list):
+        row = i
+        y = row * cell_height
+        swatch_start_x = cell_width
+        text_pos_x = cell_width + swatch_width + 7
+        axis[3].text(text_pos_x, y, elem, fontsize=14,
+            horizontalalignment='left',
+            verticalalignment='center')
+        handle_list.append(Rectangle(xy=(swatch_start_x, y-9), width=swatch_width,
+                    height=18, facecolor=colors_palette[i], edgecolor='0.7'))
+    axis[3].legend(handles=handle_list, labels=label_list)
+    # axis[3].legend(title='TF', labels=[
+    #                                     TF_1 + '-' + TF_2 + '-' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " sample)", 
+    #                                     TF_1 + '-' + TF_2 + '+' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " sample)", 
+    #                                     TF_1 + '+' + TF_2 + '-' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " sample)", 
+    #                                     TF_1 + '+' + TF_2 + '+' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " sample)"])
     sns.violinplot([TF_1_inf_TF_2_inf, TF_1_inf_TF_2_sup, TF_1_sup_TF_2_inf, TF_1_sup_TF_2_sup], 
                     ax = axis[4], 
                     showmeans=True, 
@@ -411,18 +444,36 @@ if show_first_layer_res:
         TF_1_inf_TF_3_inf_norm = np.nan_to_num(np.log10(TF_1_inf_TF_3_inf), neginf=0)
 
         if not show_zero:
-            TF_1_sup_TF_3_sup_norm[TF_1_sup_TF_3_sup_norm==0] = np.nan
-            TF_1_sup_TF_3_inf_norm[TF_1_sup_TF_3_inf_norm==0] = np.nan
-            TF_1_inf_TF_3_sup_norm[TF_1_inf_TF_3_sup_norm==0] = np.nan
-            TF_1_inf_TF_3_inf_norm[TF_1_inf_TF_3_inf_norm==0] = np.nan
-
+            TF_1_sup_TF_3_sup_norm[TF_1_sup_TF_3_sup==0] = np.nan
+            TF_1_sup_TF_3_inf_norm[TF_1_sup_TF_3_inf==0] = np.nan
+            TF_1_inf_TF_3_sup_norm[TF_1_inf_TF_3_sup==0] = np.nan
+            TF_1_inf_TF_3_inf_norm[TF_1_inf_TF_3_inf==0] = np.nan
+        
+        
         sns.histplot(data = [TF_1_inf_TF_3_inf_norm, TF_1_inf_TF_3_sup_norm, TF_1_sup_TF_3_inf_norm, TF_1_sup_TF_3_sup_norm][::-1],
-                    kde=kde, legend=False, ax=axis[6], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[::-1])
-        axis[6].legend(title='TF', labels=[
-                                            TF_1 + '-' + TF_3 + '-' + "\n(" + str(len(TF_1_sup_TF_3_sup.index)) + " sample)", 
-                                            TF_1 + '-' + TF_3 + '+' + "\n(" + str(len(TF_1_sup_TF_3_inf.index)) + " sample)", 
-                                            TF_1 + '+' + TF_3 + '-' + "\n(" + str(len(TF_1_inf_TF_3_sup.index)) + " sample)", 
-                                            TF_1 + '+' + TF_3 + '+' + "\n(" + str(len(TF_1_inf_TF_3_inf.index)) + " sample)"])
+                    kde=kde, legend=True, ax=axis[6], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[::-1], label="data")
+        
+        label_list = []
+        handle_list = []
+        legend = axis[6].get_legend()
+        handles = legend.legendHandles
+        legend.remove()
+        label_list.append(TF_1 + '-' + TF_3 + '-' + "\n(" + str(len(TF_1_inf_TF_3_inf.index)) + " sample)")
+        label_list.append(TF_1 + '-' + TF_3 + '+' + "\n(" + str(len(TF_1_inf_TF_3_sup.index)) + " sample)")
+        label_list.append(TF_1 + '+' + TF_3 + '-' + "\n(" + str(len(TF_1_sup_TF_3_inf.index)) + " sample)")
+        label_list.append(TF_1 + '+' + TF_3 + '+' + "\n(" + str(len(TF_1_sup_TF_3_sup.index)) + " sample)")
+        for i, elem in enumerate(label_list):
+            row = i
+            y = row * cell_height
+            swatch_start_x = cell_width
+            text_pos_x = cell_width + swatch_width + 7
+            axis[6].text(text_pos_x, y, elem, fontsize=14,
+                horizontalalignment='left',
+                verticalalignment='center')
+            handle_list.append(Rectangle(xy=(swatch_start_x, y-9), width=swatch_width,
+                      height=18, facecolor=colors_palette[i], edgecolor='0.7'))
+        axis[6].legend(handles=handle_list, labels=label_list)
+        
         sns.violinplot([TF_1_inf_TF_3_inf, TF_1_inf_TF_3_sup, TF_1_sup_TF_3_inf, TF_1_sup_TF_3_sup], ax = axis[7], showmeans=True, showmedians=True, showextrema=True)
         axis[7].boxplot(
             [TF_1_inf_TF_3_inf, TF_1_inf_TF_3_sup, TF_1_sup_TF_3_inf, TF_1_sup_TF_3_sup],
