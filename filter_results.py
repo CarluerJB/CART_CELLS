@@ -42,6 +42,8 @@ sort_on_gini = int(args["-gs"]) if "-gs" in args.keys() else None
 sort_on_zero_te_tr = int(args["-zs"]) if "-zs" in args.keys() else None
 sort_on_node = int(args["-ns"]) if "-ns" in args.keys() else None
 
+res_file_pathname = args["-fn"] if "-fn" in args.keys() else None
+
 sort_by = [None]*5
 sort_order = [None]*5
 if sort_on_model!=None:
@@ -90,4 +92,8 @@ compiled_res = compiled_res.loc[compiled_res[compiled_res['node'] <= thres_node]
 
 ## SORTING STEP
 compiled_res.sort_values(by=sort_by, ascending=sort_order, inplace=True)
-print(compiled_res)
+candidate = compiled_res["AGI"].to_numpy()
+
+with open(res_file_pathname, "w") as file:
+    for elem in candidate:
+        file.write(elem + "\n")
