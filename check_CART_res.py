@@ -1,5 +1,6 @@
 from os import stat
 from random import seed
+from turtle import width
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,30 +21,23 @@ show_first_layer_res = False
 full_first_layer = True
 kde = True
 common_norm = False
+log_y_axis = False
 histplot_multiple = "dodge"
-histplot_binwidth=0.05
+histplot_binwidth=0.2
 colors_palette = sns.color_palette("tab10", 4)
 ratio_sign = 10
-show_zero = True
+show_zero = False
 va_text_sign = 'top'
 run_UMAP = False
 cell_width = 212
 cell_height = 22
 swatch_width = 48
-
-medianprops = dict(
-    linewidth=4, 
-    color="#747473",
-    solid_capstyle="butt"
-)
-boxprops = dict(
-    linewidth=2, 
-    color="#747473"
-)
+xaxis_label_size = 8
+plot_method = "print" # Choice between "print" and "show"
 
 #data = "/media/carluerj/Data/These/DATA/gene_regulator_network/20K_prefiltred_contrib_filter_23_TF_002.txt"
 data = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
-out_data = "/media/carluerj/Data/These/Results/GRN_inference/"
+out_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/"
 compiled_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/"
 embedded_data_path = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/UMAP_embedding.npy"
 
@@ -248,7 +242,7 @@ if nb_plot>0:
                         is_node3_mp_mm_sign = '***'
 
 
-figure, axis = plt.subplots(nb_plot, 3)
+figure, axis = plt.subplots(nb_plot, 3, figsize=(15, 10))
 axis = axis.ravel()
 # TF 1 
 TF_1_sup = Y.loc[X[TF_1] > lim_val_1, TG]
@@ -262,14 +256,14 @@ if not show_zero:
 
 sns.histplot([TF_1_inf_norm if len(TF_1_inf_norm)>0 else np.nan, TF_1_sup_norm if len(TF_1_sup_norm)>0 else np.nan][::-1], 
                 kde=kde, legend=True, ax=axis[0], stat="percent", common_norm=common_norm, element="bars", multiple=histplot_multiple, binwidth=histplot_binwidth, palette=colors_palette[:2][::-1])#, binwidth=0.1)
-# axis[0].legend(title='TF', labels=[TF_1 + '<= ' + str(lim_val_1) + "\n(" + str(len(TF_1_inf.index)) + " sample)", TF_1 + '> ' + str(lim_val_1) + "\n(" + str(len(TF_1_sup.index)) + " sample)"])
+# axis[0].legend(title='TF', labels=[TF_1 + '<= ' + str(lim_val_1) + "\n(" + str(len(TF_1_inf.index)) + " samples)", TF_1 + '> ' + str(lim_val_1) + "\n(" + str(len(TF_1_sup.index)) + " samples)"])
 legend = axis[0].get_legend()
 handles = legend.legendHandles
 legend.remove()
 label_list = []
 handle_list = []
-label_list.append(TF_1 + '<= ' + str(lim_val_1) + "\n(" + str(len(TF_1_inf.index)) + " sample)")
-label_list.append(TF_1 + '> ' + str(lim_val_1) + "\n(" + str(len(TF_1_sup.index)) + " sample)")
+label_list.append(TF_1 + ' - ' + "\n(" + str(len(TF_1_inf.index)) + " samples)")
+label_list.append(TF_1 + ' + ' + "\n(" + str(len(TF_1_sup.index)) + " samples)")
 for i, elem in enumerate(label_list):
     row = i
     y = row * cell_height
@@ -293,6 +287,9 @@ axis[1].boxplot(
     positions=[0, 1],
     showfliers = True,
     showcaps = True, labels=None)
+
+if log_y_axis:
+    axis[1].set(yscale="symlog")
 # TODO add adaptative height
 if is_node1_sign!=None:
     x1, x2 = 0, 1
@@ -300,7 +297,8 @@ if is_node1_sign!=None:
     axis[1].plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
     axis[1].text((x1+x2)*.5, y+h, is_node1_sign, ha='center', va=va_text_sign, color=col)
 
-axis[1].set_xticklabels(['', '', TF_1+'<=' + str(lim_val_1), TF_1+'>' + str(lim_val_1)])
+axis[1].set_xticklabels(['', '', TF_1+' - ', TF_1+' + '])
+axis[1].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
 cell_sup = list(set(Y_norm.index.values).intersection(set(TF_1_sup.index.values)))
 cell_inf = list(set(Y_norm.index.values).intersection(set(TF_1_inf.index.values)))
 
@@ -337,10 +335,10 @@ if show_first_layer_res:
     legend.remove()
     label_list = []
     handle_list = []
-    label_list.append(TF_1 + '-' + TF_2 + '-' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " sample)")
-    label_list.append(TF_1 + '-' + TF_2 + '+' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " sample)")
-    label_list.append(TF_1 + '+' + TF_2 + '-' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " sample)")
-    label_list.append(TF_1 + '+' + TF_2 + '+' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " sample)")
+    label_list.append(TF_1 + ' - ' + TF_2 + ' - ' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " samples)")
+    label_list.append(TF_1 + ' - ' + TF_2 + ' + ' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " samples)")
+    label_list.append(TF_1 + ' + ' + TF_2 + ' - ' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " samples)")
+    label_list.append(TF_1 + ' + ' + TF_2 + ' + ' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " samples)")
     for i, elem in enumerate(label_list):
         row = i
         y = row * cell_height
@@ -353,10 +351,10 @@ if show_first_layer_res:
                     height=18, facecolor=colors_palette[i], edgecolor='0.7'))
     axis[3].legend(handles=handle_list, labels=label_list)
     # axis[3].legend(title='TF', labels=[
-    #                                     TF_1 + '-' + TF_2 + '-' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " sample)", 
-    #                                     TF_1 + '-' + TF_2 + '+' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " sample)", 
-    #                                     TF_1 + '+' + TF_2 + '-' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " sample)", 
-    #                                     TF_1 + '+' + TF_2 + '+' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " sample)"])
+    #                                     TF_1 + '-' + TF_2 + '-' + "\n(" + str(len(TF_1_sup_TF_2_sup.index)) + " samples)", 
+    #                                     TF_1 + '-' + TF_2 + '+' + "\n(" + str(len(TF_1_sup_TF_2_inf.index)) + " samples)", 
+    #                                     TF_1 + '+' + TF_2 + '-' + "\n(" + str(len(TF_1_inf_TF_2_sup.index)) + " samples)", 
+    #                                     TF_1 + '+' + TF_2 + '+' + "\n(" + str(len(TF_1_inf_TF_2_inf.index)) + " samples)"])
     sns.violinplot([TF_1_inf_TF_2_inf, TF_1_inf_TF_2_sup, TF_1_sup_TF_2_inf, TF_1_sup_TF_2_sup], 
                     ax = axis[4], 
                     showmeans=True, 
@@ -367,6 +365,9 @@ if show_first_layer_res:
         positions=[0, 1, 2, 3],
         showfliers = True, # Do not show the outliers beyond the caps.
         showcaps = True, labels=None)   # Do not show the caps
+    if log_y_axis:
+        axis[4].set(yscale="symlog")
+    
     
     max_val = np.max([TF_1_inf_TF_2_inf.max() if len(TF_1_inf_TF_2_inf.index)>0 else 0, 
                         TF_1_inf_TF_2_sup.max() if len(TF_1_inf_TF_2_sup.index)>0 else 0, 
@@ -413,7 +414,8 @@ if show_first_layer_res:
         axis[4].plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
         axis[4].text((x1+x2)*.5, y+h, is_node2_pp_mm_sign, ha='center', va=va_text_sign, color=col)
         y_add += 1
-    axis[4].set_xticklabels(['', '', '', '', TF_1 + '-' + TF_2 + '-', TF_1 + '-' + TF_2 + '+', TF_1 + '+' + TF_2 + '-', TF_1+'+' + TF_2 + '+'])
+    axis[4].set_xticklabels(['', '', '', '', TF_1 + ' - ' + TF_2 + ' - ', TF_1 + ' - ' + TF_2 + ' + ', TF_1 + ' + ' + TF_2 + ' - ', TF_1+' + ' + TF_2 + ' + '])
+    axis[4].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
     cell_sup_sup = list(set(Y_norm.index.values).intersection(set(TF_1_sup_TF_2_sup.index.values)))
     cell_sup_inf = list(set(Y_norm.index.values).intersection(set(TF_1_sup_TF_2_inf.index.values)))
     cell_inf_sup = list(set(Y_norm.index.values).intersection(set(TF_1_inf_TF_2_sup.index.values)))
@@ -458,10 +460,10 @@ if show_first_layer_res:
         legend = axis[6].get_legend()
         handles = legend.legendHandles
         legend.remove()
-        label_list.append(TF_1 + '-' + TF_3 + '-' + "\n(" + str(len(TF_1_inf_TF_3_inf.index)) + " sample)")
-        label_list.append(TF_1 + '-' + TF_3 + '+' + "\n(" + str(len(TF_1_inf_TF_3_sup.index)) + " sample)")
-        label_list.append(TF_1 + '+' + TF_3 + '-' + "\n(" + str(len(TF_1_sup_TF_3_inf.index)) + " sample)")
-        label_list.append(TF_1 + '+' + TF_3 + '+' + "\n(" + str(len(TF_1_sup_TF_3_sup.index)) + " sample)")
+        label_list.append(TF_1 + ' - ' + TF_3 + ' - ' + "\n(" + str(len(TF_1_inf_TF_3_inf.index)) + " samples)")
+        label_list.append(TF_1 + ' - ' + TF_3 + ' + ' + "\n(" + str(len(TF_1_inf_TF_3_sup.index)) + " samples)")
+        label_list.append(TF_1 + ' + ' + TF_3 + ' - ' + "\n(" + str(len(TF_1_sup_TF_3_inf.index)) + " samples)")
+        label_list.append(TF_1 + ' + ' + TF_3 + ' + ' + "\n(" + str(len(TF_1_sup_TF_3_sup.index)) + " samples)")
         for i, elem in enumerate(label_list):
             row = i
             y = row * cell_height
@@ -480,6 +482,8 @@ if show_first_layer_res:
             positions=[0, 1, 2, 3],
             showfliers = True, # Do not show the outliers beyond the caps.
             showcaps = True, labels=None)   # Do not show the caps
+        if log_y_axis:
+            axis[7].set(yscale="symlog")
         max_val = np.max([TF_1_inf_TF_3_inf.max() if len(TF_1_inf_TF_3_inf.index)>0 else 0, 
                             TF_1_inf_TF_3_sup.max() if len(TF_1_inf_TF_3_sup.index)>0 else 0, 
                             TF_1_sup_TF_3_inf.max() if len(TF_1_sup_TF_3_inf.index)>0 else 0, 
@@ -525,7 +529,8 @@ if show_first_layer_res:
             axis[7].plot([x1, x1, x2, x2], [y, y+h, y+h, y], lw=1.5, c=col)
             axis[7].text((x1+x2)*.5, y+h, is_node3_pp_mm_sign, ha='center', va=va_text_sign, color=col)
             y_add += 1
-        axis[7].set_xticklabels(['', '', '', '', TF_1 + '-' + TF_3 + '-', TF_1 + '-' + TF_3 + '+', TF_1 + '+' + TF_3 + '-', TF_1+'+' + TF_3 + '+'])
+        axis[7].set_xticklabels(['', '', '', '', TF_1 + ' - ' + TF_3 + ' - ', TF_1 + ' - ' + TF_3 + ' + ', TF_1 + ' + ' + TF_3 + ' - ', TF_1+' + ' + TF_3 + ' + '])
+        axis[7].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
         cell_sup_sup = list(set(Y_norm.index.values).intersection(set(TF_1_sup_TF_3_sup.index.values)))
         cell_sup_inf = list(set(Y_norm.index.values).intersection(set(TF_1_sup_TF_3_inf.index.values)))
         cell_inf_sup = list(set(Y_norm.index.values).intersection(set(TF_1_inf_TF_3_sup.index.values)))
@@ -541,5 +546,11 @@ if show_first_layer_res:
         axis[8].scatter(x=embedded_data[:,0][i_cell_sup_inf], y=embedded_data[:,1][i_cell_sup_inf], s=3, color=colors_palette[::-1][1], marker='.')
         axis[8].scatter(x=embedded_data[:,0][i_cell_inf_sup], y=embedded_data[:,1][i_cell_inf_sup], s=3, color=colors_palette[::-1][2], marker='.')
         axis[8].scatter(x=embedded_data[:,0][i_cell_inf_inf], y=embedded_data[:,1][i_cell_inf_inf], s=3, color=colors_palette[::-1][3], marker='.')
-plt.suptitle(str(TG))
-plt.show()
+# plt.suptitle(str(TG) + "\nCART Threshold : " + str(TF_1) + " : " + str(lim_val_1)+ "\n" + str(TF_2) + " : " + str(lim_val_2)+ "\n" + str(TF_3) + " : " + str(lim_val_3))
+plt.suptitle(str(TG) + "\nCART Threshold : \n" + '{:<10s}{:<4s}\n'.format(str(TF_1), str(lim_val_1)) + '{:<10s}{:<4s}\n'.format(str(TF_2), str(lim_val_2)) + '{:<10s}{:<4s}\n'.format(str(TF_3), str(lim_val_3)))
+if plot_method=="show":
+    plt.show()
+elif plot_method=="print":
+    plt.savefig(out_data + "candidates_01/" + str(TG) + ".pdf")
+else:
+    raise(NotImplementedError())
