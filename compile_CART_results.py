@@ -19,6 +19,7 @@ in_dir = sys.argv[1]
 out_data = sys.argv[1]
 data_path = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
 
+
 AGI_name = pd.read_table(out_data + "list_gene.txt", header=None, sep=";")
 data = pd.read_table(data_path, sep="\t", header=0)
 X = data.loc[data.index[-23:]].transpose() # TF
