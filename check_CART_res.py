@@ -37,7 +37,7 @@ plot_method = "print" # Choice between "print" and "show"
 
 #data = "/media/carluerj/Data/These/DATA/gene_regulator_network/20K_prefiltred_contrib_filter_23_TF_002.txt"
 data = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
-out_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/"
+out_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_express_ALL/"
 compiled_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/"
 embedded_data_path = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/UMAP_embedding.npy"
 
@@ -53,6 +53,10 @@ compiled_res = pd.read_table(compiled_data + "Final_score_table.txt", sep=",", h
 
 # Load parameter based on AGI
 TG = sys.argv[1]
+if TG not in Y.columns:
+    with open(out_data + "not_found_candidates.txt", "a") as file:
+        file.write(TG + "\n")
+    exit(0)
 compiled_res = compiled_res.loc[(compiled_res['AGI']==TG) & (compiled_res['sign']=='<=')]
 
 # RUN UMAP
@@ -551,6 +555,6 @@ plt.suptitle(str(TG) + "\nCART Threshold : \n" + '{:<10s}{:<4s}\n'.format(str(TF
 if plot_method=="show":
     plt.show()
 elif plot_method=="print":
-    plt.savefig(out_data + "candidates_01/" + str(TG) + ".pdf")
+    plt.savefig(out_data + "candidates_03/" + str(TG) + ".pdf")
 else:
     raise(NotImplementedError())
