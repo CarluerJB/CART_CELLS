@@ -48,6 +48,12 @@ for ielem, elem, score, y_test, y_pred in zip(range(len(AGI_name[0].values)), AG
     a["p-val_+-_-+"] = None
     a["p-val_+-_--"] = None
     a["p-val_-+_--"] = None
+    a["mean_TF1+"] = None
+    a["mean_TF1-"] = None
+    a["mean_TF1+TF2+"] = None
+    a["mean_TF1-TF2+"] = None
+    a["mean_TF1+TF2-"] = None
+    a["mean_TF1-TF2-"] = None
     a["perc_zero_test"] = np.where(np.array(ast.literal_eval(y_test))==0.0)[0].size / np.array(ast.literal_eval(y_test)).size
     a["perc_zero_pred"] = np.where(np.array(ast.literal_eval(y_pred))==0.0)[0].size / np.array(ast.literal_eval(y_pred)).size
     # Tree to table
@@ -79,8 +85,10 @@ for ielem, elem, score, y_test, y_pred in zip(range(len(AGI_name[0].values)), AG
         cond = a[a["node"]==node_i_list[0]]
         TF_1_sup = Y.loc[X[cond['TF'].values[0]] > cond['lim'].values[0], cond['AGI']]
         TF_1_inf = Y.loc[X[cond['TF'].values[0]] <= cond['lim'].values[0], cond['AGI']]
-        t_test_res = stats.ttest_ind(np.nan_to_num(np.log10(TF_1_sup.values), neginf=0), np.nan_to_num(np.log10(TF_1_inf.values), neginf=0) , alternative="two-sided")
+        t_test_res = stats.mannwhitneyu(x=np.nan_to_num(np.log10(TF_1_sup.values), neginf=0), y=np.nan_to_num(np.log10(TF_1_inf.values), neginf=0) , alternative="two-sided")
         a.loc[a["node"]==node_i_list[0], "p-val_TF1"] = list(t_test_res)[1]
+        a.loc[a["node"]==node_i_list[0], "mean_TF1+"] = TF_1_sup.mean().values
+        a.loc[a["node"]==node_i_list[0], "mean_TF1-"] = TF_1_inf.mean().values
         # Compute anova-test on (TF1 sup / TF1 inf) and (TF2 sup / TF2 inf)
         if len(node_i_list)>1:
             cond2 = a[a["node"]==node_i_list[1]]
@@ -104,37 +112,48 @@ for ielem, elem, score, y_test, y_pred in zip(range(len(AGI_name[0].values)), AG
             TF_1_sup_TF_2_inf = Y.loc[(X[cond['TF'].values[0]] > cond['lim'].values[0]) & (X[cond2['TF'].values[0]] <= cond2['lim'].values[0]), cond['AGI']]#.to_numpy().flatten().tolist()
             TF_1_inf_TF_2_sup = Y.loc[(X[cond['TF'].values[0]] <= cond['lim'].values[0]) & (X[cond2['TF'].values[0]] > cond2['lim'].values[0]), cond['AGI']]#.to_numpy().flatten().tolist()
             TF_1_inf_TF_2_inf = Y.loc[(X[cond['TF'].values[0]] <= cond['lim'].values[0]) & (X[cond2['TF'].values[0]] <= cond2['lim'].values[0]), cond['AGI']]#.to_numpy().flatten().tolist()
-            # result = stats.tukey_hsd(TF_1_sup_TF_2_sup, TF_1_sup_TF_2_inf, TF_1_inf_TF_2_sup, TF_1_inf_TF_2_inf) 
-            TF_1_sup_TF_2_sup['sign'] = "++"
-            TF_1_sup_TF_2_inf['sign'] = "+-"
-            TF_1_inf_TF_2_sup['sign'] = "-+"
-            TF_1_inf_TF_2_inf['sign'] = "--"
-            tukey_data = TF_1_sup_TF_2_sup.append([TF_1_sup_TF_2_sup, TF_1_sup_TF_2_inf, TF_1_inf_TF_2_sup, TF_1_inf_TF_2_inf])
-            result = pairwise_tukeyhsd(tukey_data[cond['AGI']], groups=tukey_data['sign'])
+            
+            # TF_1_sup_TF_2_sup['sign'] = "++"
+            # TF_1_sup_TF_2_inf['sign'] = "+-"
+            # TF_1_inf_TF_2_sup['sign'] = "-+"
+            # TF_1_inf_TF_2_inf['sign'] = "--"
+            # tukey_data = TF_1_sup_TF_2_sup.append([TF_1_sup_TF_2_sup, TF_1_sup_TF_2_inf, TF_1_inf_TF_2_sup, TF_1_inf_TF_2_inf])
+            # result = pairwise_tukeyhsd(tukey_data[cond['AGI']], groups=tukey_data['sign'])
+            pp_pm = stats.mannwhitneyu(TF_1_sup_TF_2_sup[cond['AGI']], TF_1_sup_TF_2_inf[cond['AGI']])
+            pp_mp = stats.mannwhitneyu(TF_1_sup_TF_2_sup[cond['AGI']], TF_1_inf_TF_2_sup[cond['AGI']])
+            pp_mm = stats.mannwhitneyu(TF_1_sup_TF_2_sup[cond['AGI']], TF_1_inf_TF_2_inf[cond['AGI']])
+            pm_mp = stats.mannwhitneyu(TF_1_sup_TF_2_inf[cond['AGI']], TF_1_inf_TF_2_sup[cond['AGI']])
+            pm_mm = stats.mannwhitneyu(TF_1_sup_TF_2_inf[cond['AGI']], TF_1_inf_TF_2_inf[cond['AGI']])
+            mp_mm = stats.mannwhitneyu(TF_1_inf_TF_2_sup[cond['AGI']], TF_1_inf_TF_2_inf[cond['AGI']])
+
+            a.loc[a["node"]==node_i_list[1], "mean_TF1+TF2+"] = TF_1_sup_TF_2_sup.mean().values
+            a.loc[a["node"]==node_i_list[1], "mean_TF1-TF2+"] = TF_1_inf_TF_2_sup.mean().values
+            a.loc[a["node"]==node_i_list[1], "mean_TF1+TF2-"] = TF_1_sup_TF_2_inf.mean().values
+            a.loc[a["node"]==node_i_list[1], "mean_TF1-TF2-"] = TF_1_inf_TF_2_inf.mean().values
             # print(result)
             # exit(0)
             # print(np.unique(result.groups))
             i = 0
             if len(TF_1_sup_TF_2_sup.index)>0:
                 if len(TF_1_sup_TF_2_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[1], "p-val_++_+-"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[1], "p-val_++_+-"] = pp_pm.pvalue[0]
                     i=i+1
                 if len(TF_1_inf_TF_2_sup.index)>0:
-                    a.loc[a["node"]==node_i_list[1], "p-val_++_-+"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[1], "p-val_++_-+"] = pp_mp.pvalue[0]
                     i=i+1
                 if len(TF_1_inf_TF_2_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[1], "p-val_++_--"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[1], "p-val_++_--"] = pp_mm.pvalue[0]
                     i=i+1
             if len(TF_1_sup_TF_2_inf.index)>0:
                 if len(TF_1_inf_TF_2_sup.index)>0:
-                    a.loc[a["node"]==node_i_list[1], "p-val_+-_-+"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[1], "p-val_+-_-+"] = pm_mp.pvalue[0]
                     i=i+1
                 if len(TF_1_inf_TF_2_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[1], "p-val_+-_--"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[1], "p-val_+-_--"] = pm_mm.pvalue[0]
                     i=i+1
             if len(TF_1_inf_TF_2_sup.index)>0:
                 if len(TF_1_inf_TF_2_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[1], "p-val_-+_--"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[1], "p-val_-+_--"] = mp_mm.pvalue[0]
                     i=i+1
         if len(node_i_list)>2:
             cond3 = a[a["node"]==node_i_list[2]]
@@ -157,35 +176,47 @@ for ielem, elem, score, y_test, y_pred in zip(range(len(AGI_name[0].values)), AG
             TF_1_inf_TF_3_sup = Y.loc[(X[cond['TF'].values[0]] <= cond['lim'].values[0]) & (X[cond3['TF'].values[0]] > cond3['lim'].values[0]), cond['AGI']]
             TF_1_inf_TF_3_inf = Y.loc[(X[cond['TF'].values[0]] <= cond['lim'].values[0]) & (X[cond3['TF'].values[0]] <= cond3['lim'].values[0]), cond['AGI']]
 
-            TF_1_sup_TF_3_sup['sign'] = "++"
-            TF_1_sup_TF_3_inf['sign'] = "+-"
-            TF_1_inf_TF_3_sup['sign'] = "-+"
-            TF_1_inf_TF_3_inf['sign'] = "--"
-            tukey_data = TF_1_sup_TF_3_sup.append([TF_1_sup_TF_3_sup, TF_1_sup_TF_3_inf, TF_1_inf_TF_3_sup, TF_1_inf_TF_3_inf])
-            result = pairwise_tukeyhsd(tukey_data[cond['AGI']], groups=tukey_data['sign'])
+            # TF_1_sup_TF_3_sup['sign'] = "++"
+            # TF_1_sup_TF_3_inf['sign'] = "+-"
+            # TF_1_inf_TF_3_sup['sign'] = "-+"
+            # TF_1_inf_TF_3_inf['sign'] = "--"
+            # tukey_data = TF_1_sup_TF_3_sup.append([TF_1_sup_TF_3_sup, TF_1_sup_TF_3_inf, TF_1_inf_TF_3_sup, TF_1_inf_TF_3_inf])
+            # result = pairwise_tukeyhsd(tukey_data[cond['AGI']], groups=tukey_data['sign'])
+            pp_pm = stats.mannwhitneyu(TF_1_sup_TF_3_sup[cond['AGI']], TF_1_sup_TF_3_inf[cond['AGI']])
+            pp_mp = stats.mannwhitneyu(TF_1_sup_TF_3_sup[cond['AGI']], TF_1_inf_TF_3_sup[cond['AGI']])
+            pp_mm = stats.mannwhitneyu(TF_1_sup_TF_3_sup[cond['AGI']], TF_1_inf_TF_3_inf[cond['AGI']])
+            pm_mp = stats.mannwhitneyu(TF_1_sup_TF_3_inf[cond['AGI']], TF_1_inf_TF_3_sup[cond['AGI']])
+            pm_mm = stats.mannwhitneyu(TF_1_sup_TF_3_inf[cond['AGI']], TF_1_inf_TF_3_inf[cond['AGI']])
+            mp_mm = stats.mannwhitneyu(TF_1_inf_TF_3_sup[cond['AGI']], TF_1_inf_TF_3_inf[cond['AGI']])
 
+            a.loc[a["node"]==node_i_list[2], "mean_TF1+TF2+"] = TF_1_sup_TF_3_sup.mean().values
+            a.loc[a["node"]==node_i_list[2], "mean_TF1-TF2+"] = TF_1_inf_TF_3_sup.mean().values
+            a.loc[a["node"]==node_i_list[2], "mean_TF1+TF2-"] = TF_1_sup_TF_3_inf.mean().values
+            a.loc[a["node"]==node_i_list[2], "mean_TF1-TF2-"] = TF_1_inf_TF_3_inf.mean().values
             i = 0
             if len(TF_1_sup_TF_3_sup.index)>0:
                 if len(TF_1_sup_TF_3_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[2], "p-val_++_+-"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[2], "p-val_++_+-"] = pp_pm.pvalue[0]
                     i=i+1
                 if len(TF_1_inf_TF_3_sup.index)>0:
-                    a.loc[a["node"]==node_i_list[2], "p-val_++_-+"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[2], "p-val_++_-+"] = pp_mp.pvalue[0]
                     i=i+1
                 if len(TF_1_inf_TF_3_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[2], "p-val_++_--"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[2], "p-val_++_--"] = pp_mm.pvalue[0]
                     i=i+1
             if len(TF_1_sup_TF_3_inf.index)>0:
                 if len(TF_1_inf_TF_3_sup.index)>0:
-                    a.loc[a["node"]==node_i_list[2], "p-val_+-_-+"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[2], "p-val_+-_-+"] = pm_mp.pvalue[0]
                     i=i+1
                 if len(TF_1_inf_TF_3_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[2], "p-val_+-_--"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[2], "p-val_+-_--"] = pm_mm.pvalue[0]
                     i=i+1
             if len(TF_1_inf_TF_3_sup.index)>0:
                 if len(TF_1_inf_TF_3_inf.index)>0:
-                    a.loc[a["node"]==node_i_list[2], "p-val_-+_--"] = result.pvalues[i]
+                    a.loc[a["node"]==node_i_list[2], "p-val_-+_--"] = mp_mm.pvalue[0]
                     i=i+1
     df = pd.concat([df, a])
+
 df_sorted = df[df["node"]<=5.0].sort_values(by=['AGI', "node", "gini_score"])
-df_sorted.to_csv(out_data + "Final_score_table.txt", header=True, index=False, sep=",")
+
+df_sorted.to_csv(out_data + "Final_score_table_MANNWHIT_TEST.txt", header=True, index=False, sep=",")

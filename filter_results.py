@@ -70,7 +70,7 @@ mean = Y.mean()
 std = Y.std()
 Y_norm = Y-mean/std
 ind_dict = dict((k, i) for i, k in enumerate(Y_norm.index.values))
-compiled_res = pd.read_table(compiled_data + "Final_score_table.txt", sep=",", header=0)
+compiled_res = pd.read_table(compiled_data + "Final_score_table_MANNWHIT_TEST.txt", sep=",", header=0)
 
 # Load parameter based on AGI
 compiled_res = compiled_res.loc[(compiled_res['sign']=='<=')]
