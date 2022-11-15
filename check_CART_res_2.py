@@ -37,8 +37,8 @@ plot_method = "print" # Choice between "print" and "show"
 
 #data = "/media/carluerj/Data/These/DATA/gene_regulator_network/20K_prefiltred_contrib_filter_23_TF_002.txt"
 data = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
-out_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_005_balanced/"
-compiled_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_005_balanced/"
+out_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_005/"
+compiled_data = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_005/"
 embedded_data_path = "/media/carluerj/Data/These/Results/GRN_inference/list_gene_BF/UMAP_embedding.npy"
 
 # Read data
@@ -49,7 +49,7 @@ mean = Y.mean()
 std = Y.std()
 Y_norm = Y-mean/std
 ind_dict = dict((k, i) for i, k in enumerate(Y_norm.index.values))
-compiled_res = pd.read_table(compiled_data + "Final_score_table_MANNWHIT_TEST.txt", sep=",", header=0)
+compiled_res = pd.read_table(compiled_data + "Final_score_table_MANNWHIT_TEST_FINAL_byline.txt", sep=",", header=0, na_values="NaN")
 
 # Load parameter based on AGI
 TG = sys.argv[1]
@@ -57,7 +57,7 @@ if TG not in Y.columns:
     with open(out_data + "not_found_candidates.txt", "a") as file:
         file.write(TG + "\n")
     exit(0)
-compiled_res = compiled_res.loc[(compiled_res['AGI']==TG) & (compiled_res['sign']=='<=')]
+compiled_res = compiled_res.loc[(compiled_res['AGI']==TG)]
 
 # RUN UMAP
 if run_UMAP:
@@ -66,72 +66,75 @@ if run_UMAP:
     np.save(embedded_data_path, embedded_data)
 else:
     embedded_data = np.load(embedded_data_path)
-nb_plot = len(compiled_res.index)
-node_i_list = compiled_res['node'].values
+
+nb_plot = pd.notna(compiled_res[['TF1','TF2','TF3']]).sum().sum()
 full_first_layer = False
 if nb_plot>0:
-    TF_1 = compiled_res[compiled_res['node']==node_i_list[0]]['TF'].values[0]
-    lim_val_1 = compiled_res[compiled_res['node']==node_i_list[0]]['lim'].values[0]
+    TF_1 = compiled_res['TF1'].values[0]
+    lim_val_1 = compiled_res['lim1'].values[0]
     is_node1_sign = None
-    if (compiled_res[compiled_res['node']==node_i_list[0]]['p-val_TF1']<0.05).to_numpy()[0]:
+    if (compiled_res['p-val_TF1']<0.05).to_numpy()[0]:
         is_node1_sign = '*'
-        if (compiled_res[compiled_res['node']==node_i_list[0]]['p-val_TF1']<0.01).to_numpy()[0]:
+        if (compiled_res['p-val_TF1']<0.01).to_numpy()[0]:
             is_node1_sign = '**'
-            if (compiled_res[compiled_res['node']==node_i_list[0]]['p-val_TF1']<0.001).to_numpy()[0]:
+            if (compiled_res['p-val_TF1']<0.001).to_numpy()[0]:
                 is_node1_sign = '***'
     if nb_plot>1:
         show_first_layer_res = True
-        TF_2 = compiled_res[compiled_res['node']==node_i_list[1]]['TF'].values[0]
-        lim_val_2 = compiled_res[compiled_res['node']==node_i_list[1]]['lim'].values[0]
+        TF_2 = compiled_res['TF2'].values[0]
+        lim_val_2 = compiled_res['lim2'].values[0]
         is_node2_pp_pm_sign = None
         is_node2_pp_mp_sign = None
         is_node2_pp_mm_sign = None
         is_node2_pm_mp_sign = None
         is_node2_pm_mm_sign = None
         is_node2_mp_mm_sign = None
-
-        if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_+-']<0.05).to_numpy()[0]:
+        print(TF_1)
+        print(lim_val_1)
+        print(TF_2)
+        print(lim_val_2)
+        if (compiled_res['N2_p-val_++_+-']<0.05).to_numpy()[0]:
             is_node2_pp_pm_sign = '*'
-            if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_+-']<0.01).to_numpy()[0]:
+            if (compiled_res['N2_p-val_++_+-']<0.01).to_numpy()[0]:
                 is_node2_pp_pm_sign = '**'
-                if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_+-']<0.001).to_numpy()[0]:
+                if (compiled_res['N2_p-val_++_+-']<0.001).to_numpy()[0]:
                     is_node2_pp_pm_sign = '***'
-        if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_-+']<0.05).to_numpy()[0]:
+        if (compiled_res['N2_p-val_++_-+']<0.05).to_numpy()[0]:
             is_node2_pp_mp_sign = '*'
-            if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_-+']<0.01).to_numpy()[0]:
+            if (compiled_res['N2_p-val_++_-+']<0.01).to_numpy()[0]:
                 is_node2_pp_mp_sign = '**'
-                if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_-+']<0.001).to_numpy()[0]:
+                if (compiled_res['N2_p-val_++_-+']<0.001).to_numpy()[0]:
                     is_node2_pp_mp_sign = '***'
-        if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_--']<0.05).to_numpy()[0]:
+        if (compiled_res['N2_p-val_++_--']<0.05).to_numpy()[0]:
             is_node2_pp_mm_sign = '*'
-            if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_--']<0.01).to_numpy()[0]:
+            if (compiled_res['N2_p-val_++_--']<0.01).to_numpy()[0]:
                 is_node2_pp_mm_sign = '**'
-                if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_++_--']<0.001).to_numpy()[0]:
+                if (compiled_res['N2_p-val_++_--']<0.001).to_numpy()[0]:
                     is_node2_pp_mm_sign = '***'
-        if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_+-_-+']<0.05).to_numpy()[0]:
+        if (compiled_res['N2_p-val_+-_-+']<0.05).to_numpy()[0]:
             is_node2_pm_mp_sign = '*'
-            if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_+-_-+']<0.01).to_numpy()[0]:
+            if (compiled_res['N2_p-val_+-_-+']<0.01).to_numpy()[0]:
                 is_node2_pm_mp_sign = '**'
-                if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_+-_-+']<0.001).to_numpy()[0]:
+                if (compiled_res['N2_p-val_+-_-+']<0.001).to_numpy()[0]:
                     is_node2_pm_mp_sign = '***'
-        if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_+-_--']<0.05).to_numpy()[0]:
+        if (compiled_res['N2_p-val_+-_--']<0.05).to_numpy()[0]:
             is_node2_pm_mm_sign = '*'
-            if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_+-_--']<0.01).to_numpy()[0]:
+            if (compiled_res['N2_p-val_+-_--']<0.01).to_numpy()[0]:
                 is_node2_pm_mm_sign = '**'
-                if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_+-_--']<0.001).to_numpy()[0]:
+                if (compiled_res['N2_p-val_+-_--']<0.001).to_numpy()[0]:
                     is_node2_pm_mm_sign = '***'
-        if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_-+_--']<0.05).to_numpy()[0]:
+        if (compiled_res['N2_p-val_-+_--']<0.05).to_numpy()[0]:
             is_node2_mp_mm_sign = '*'
-            if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_-+_--']<0.01).to_numpy()[0]:
+            if (compiled_res['N2_p-val_-+_--']<0.01).to_numpy()[0]:
                 is_node2_mp_mm_sign = '**'
-                if (compiled_res[compiled_res['node']==node_i_list[1]]['p-val_-+_--']<0.001).to_numpy()[0]:
+                if (compiled_res['N2_p-val_-+_--']<0.001).to_numpy()[0]:
                     is_node2_mp_mm_sign = '***'
 
         
         if nb_plot>2:
             full_first_layer = True
-            TF_3 = compiled_res[compiled_res['node']==node_i_list[2]]['TF'].values[0]
-            lim_val_3 = compiled_res[compiled_res['node']==node_i_list[2]]['lim'].values[0]
+            TF_3 = compiled_res['TF3'].values[0]
+            lim_val_3 = compiled_res['lim3'].values[0]
             is_node3_pp_pm_sign = None
             is_node3_pp_mp_sign = None
             is_node3_pp_mm_sign = None
@@ -139,41 +142,41 @@ if nb_plot>0:
             is_node3_pm_mm_sign = None
             is_node3_mp_mm_sign = None
             
-            if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_+-']<0.05).to_numpy()[0]:
+            if (compiled_res['N3_p-val_++_+-']<0.05).to_numpy()[0]:
                 is_node3_pp_pm_sign = '*'
-                if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_+-']<0.01).to_numpy()[0]:
+                if (compiled_res['N3_p-val_++_+-']<0.01).to_numpy()[0]:
                     is_node3_pp_pm_sign = '**'
-                    if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_+-']<0.001).to_numpy()[0]:
+                    if (compiled_res['N3_p-val_++_+-']<0.001).to_numpy()[0]:
                         is_node3_pp_pm_sign = '***'
-            if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_-+']<0.05).to_numpy()[0]:
+            if (compiled_res['N3_p-val_++_-+']<0.05).to_numpy()[0]:
                 is_node3_pp_mp_sign = '*'
-                if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_-+']<0.01).to_numpy()[0]:
+                if (compiled_res['N3_p-val_++_-+']<0.01).to_numpy()[0]:
                     is_node3_pp_mp_sign = '**'
-                    if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_-+']<0.001).to_numpy()[0]:
+                    if (compiled_res['N3_p-val_++_-+']<0.001).to_numpy()[0]:
                         is_node3_pp_mp_sign = '***'
-            if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_--']<0.05).to_numpy()[0]:
+            if (compiled_res['N3_p-val_++_--']<0.05).to_numpy()[0]:
                 is_node3_pp_mm_sign = '*'
-                if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_--']<0.01).to_numpy()[0]:
+                if (compiled_res['N3_p-val_++_--']<0.01).to_numpy()[0]:
                     is_node3_pp_mm_sign = '**'
-                    if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_++_--']<0.001).to_numpy()[0]:
+                    if (compiled_res['N3_p-val_++_--']<0.001).to_numpy()[0]:
                         is_node3_pp_mm_sign = '***'
-            if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_+-_-+']<0.05).to_numpy()[0]:
+            if (compiled_res['N3_p-val_+-_-+']<0.05).to_numpy()[0]:
                 is_node3_pm_mp_sign = '*'
-                if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_+-_-+']<0.01).to_numpy()[0]:
+                if (compiled_res['N3_p-val_+-_-+']<0.01).to_numpy()[0]:
                     is_node3_pm_mp_sign = '**'
-                    if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_+-_-+']<0.001).to_numpy()[0]:
+                    if (compiled_res['N3_p-val_+-_-+']<0.001).to_numpy()[0]:
                         is_node3_pm_mp_sign = '***'
-            if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_+-_--']<0.05).to_numpy()[0]:
+            if (compiled_res['N3_p-val_+-_--']<0.05).to_numpy()[0]:
                 is_node3_pm_mm_sign = '*'
-                if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_+-_--']<0.01).to_numpy()[0]:
+                if (compiled_res['N3_p-val_+-_--']<0.01).to_numpy()[0]:
                     is_node3_pm_mm_sign = '**'
-                    if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_+-_--']<0.001).to_numpy()[0]:
+                    if (compiled_res['N3_p-val_+-_--']<0.001).to_numpy()[0]:
                         is_node3_pm_mm_sign = '***'
-            if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_-+_--']<0.05).to_numpy()[0]:
+            if (compiled_res['N3_p-val_-+_--']<0.05).to_numpy()[0]:
                 is_node3_mp_mm_sign = '*'
-                if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_-+_--']<0.01).to_numpy()[0]:
+                if (compiled_res['N3_p-val_-+_--']<0.01).to_numpy()[0]:
                     is_node3_mp_mm_sign = '**'
-                    if (compiled_res[compiled_res['node']==node_i_list[2]]['p-val_-+_--']<0.001).to_numpy()[0]:
+                    if (compiled_res['N3_p-val_-+_--']<0.001).to_numpy()[0]:
                         is_node3_mp_mm_sign = '***'
 
 
@@ -537,6 +540,6 @@ else:
 if plot_method=="show":
     plt.show()
 elif plot_method=="print":
-    plt.savefig(out_data + "candidates_05_01/" + str(TG) + ".pdf")
+    plt.savefig(out_data + "candidates_by_pval/" + str(TG) + ".pdf")
 else:
     raise(NotImplementedError())

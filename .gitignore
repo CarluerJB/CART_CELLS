@@ -9,3 +9,4 @@ data_filter_representation.py
 data_representation.py
 *.vscode
 *.Rproj.user
+.Rproj.user

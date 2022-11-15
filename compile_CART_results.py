@@ -18,16 +18,18 @@ warnings.filterwarnings("ignore")
 in_dir = sys.argv[1]
 out_data = sys.argv[1]
 data_path = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
+cut_train_test_ratio = 0.8
 
 
 AGI_name = pd.read_table(out_data + "list_gene.txt", header=None, sep=";")
 data = pd.read_table(data_path, sep="\t", header=0)
 X = data.loc[data.index[-23:]].transpose() # TF
 Y = data.drop([*data.index[-23:]]).transpose() # AGI
+nb_cells = len(Y.index)
 
-df = pd.DataFrame({"gini_score" : [], "sample_size" : [], "AGI" : [], "node" : [], "model_score" : [], "TF" : [], "sign" : [], "lim" : [], "p-val" : []})#, "y_test" : [], "y_pred" : []})
+df = pd.DataFrame({"gini_score" : [], "sample_size" : [], "AGI" : [], "node" : [], "model_score" : [], "TF" : [], "sign" : [], "lim" : []})#, "y_test" : [], "y_pred" : []})
 
-for ielem, elem, score, y_test, y_pred in zip(range(len(AGI_name[0].values)), AGI_name[0].values, AGI_name[1].values, AGI_name[2].values, AGI_name[3].values):
+for ielem, elem, score, y_pred, y_train, y_test in zip(range(len(AGI_name[0].values)), AGI_name[0].values, AGI_name[1].values, AGI_name[2].values, AGI_name[3].values, AGI_name[4].values):
     sys.stdout.write("\rWORKING ON elem n° {0} = {1}".format(ielem, elem))
     sys.stdout.flush()
     a = pd.read_table(out_data + "score/" + elem + ".txt", header=None, sep=",", names=["gini_score", "sample_size"])
@@ -54,8 +56,11 @@ for ielem, elem, score, y_test, y_pred in zip(range(len(AGI_name[0].values)), AG
     a["mean_TF1-TF2+"] = None
     a["mean_TF1+TF2-"] = None
     a["mean_TF1-TF2-"] = None
-    a["perc_zero_test"] = np.where(np.array(ast.literal_eval(y_test))==0.0)[0].size / np.array(ast.literal_eval(y_test)).size
-    a["perc_zero_pred"] = np.where(np.array(ast.literal_eval(y_pred))==0.0)[0].size / np.array(ast.literal_eval(y_pred)).size
+    a["perc_zero_train"] = y_train
+    a["perc_zero_test"] = y_test
+    a["perc_zero_pred"] = y_pred
+    perc_tot = nb_cells / ((nb_cells * cut_train_test_ratio * y_train) + (nb_cells * 1-cut_train_test_ratio * y_test))
+    a["perc_zero_tot"] = perc_tot
     # Tree to table
     with open(out_data + "txt_tree/" + elem + ".txt", 'r') as file :
         tree_txt = file.readlines()
