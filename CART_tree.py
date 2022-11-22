@@ -9,6 +9,7 @@ import sys
 import ast
 import os
 
+datas_source = "Lauras"
 NORMALIZE = False
 CLASS_TRANSFO = False
 MIN_SAMPLE_CUT = 0.10
@@ -17,17 +18,27 @@ CLASS_WEIGHT = None
 # IN/OUT PATH
 data = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
 out_data = "/media/carluerj/Data/These/Results/GRN_inference/"
+tf_list_path = "/media/carluerj/Data/These/DATA/gene_regulator_network/tf_list.txt"
 
 # CREATE OUT DIR and FILE
-os.makedirs(out_data + "list_gene_005/" + "score", exist_ok=True)
-os.makedirs(out_data + "list_gene_005/" + "txt_tree", exist_ok=True)
-os.makedirs(out_data + "list_gene_005/" + "tree", exist_ok=True)
-with open(out_data + "list_gene_005/" + "list_gene.txt", 'w') as file:
-    pass
+# os.makedirs(out_data + "list_gene_005/" + "score", exist_ok=True)
+# os.makedirs(out_data + "list_gene_005/" + "txt_tree", exist_ok=True)
+# os.makedirs(out_data + "list_gene_005/" + "tree", exist_ok=True)
+# with open(out_data + "list_gene_005/" + "list_gene.txt", 'w') as file:
+#     pass
 # Table operation
-df = pd.read_table(data, sep="\t", header=0)
-X = df.loc[df.index[-23:]].transpose() # TF only
-Y = df.drop([*df.index[-23:]]).transpose() # AGI only
+data_src_type = data.split('.')[1]
+if data_src_type == "txt":
+    df = pd.read_table(data, sep="\t", header=0)
+elif data_src_type == "h5":
+    df = pd.read_hdf(data)
+else:
+    raise NotImplementedError
+
+tf_list = pd.read_table(tf_list_path, header=None)[0].to_list()
+
+X = df.drop(tf_list).transpose()
+Y = df.loc[tf_list].transpose()
 
 # Table normalisation
 if NORMALIZE:
