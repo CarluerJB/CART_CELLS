@@ -16,9 +16,9 @@ MIN_SAMPLE_CUT = 0.10
 CLASS_WEIGHT = None
 
 # IN/OUT PATH
-data = "/media/carluerj/Data/These/DATA/gene_regulator_network/norm_matrix_cleared.txt"
-out_data = "/media/carluerj/Data/These/Results/GRN_inference/"
-tf_list_path = "/media/carluerj/Data/These/DATA/gene_regulator_network/tf_list.txt"
+data = sys.argv[1]
+out_data = sys.argv[2]
+tf_list_path = sys.argv[3]
 
 # CREATE OUT DIR and FILE
 # os.makedirs(out_data + "list_gene_005/" + "score", exist_ok=True)
