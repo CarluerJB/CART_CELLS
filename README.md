@@ -1,19 +1,25 @@
-# GRN_CART
-A pipeline allowing to build CART type decision tree on each gene for a single cell data set
+# Tools for Gene Regulatory Network Analysis
 
-# clustering.py
-Allow to make a image representation of single cell data, clustering is made by cell and by TF
+## Description
+This package contains a Python library to analyse Single-Cell data using cart tree, grn and clustering.
+### CART_class
+A pipeline allowing to build CART type decision tree on each gene for a single cell data set.
+All the result are compiled and filtered according to user parameters.
 
-# CART_tree_demo.py
-A minimalist CART_tree for demonstration purpose
+### GRN class
+A pipeline allowing to build GRN based on results from CART_class.
+Using goatools high degree node' Go-term are analysed.
+GRN parameters can be setup by the user.
 
-# CART_tree.py
-Allow to build a CART tree for each gene as the Y target, the X is the TFs.
-results are save as txt tree map, as a pdf map representation and as .gv meta data representation
+### CLUSTERING_class
+Using GRN_class analysis, the clustering is made on goatools association analysis' p-values.
+Two way Dendrogram are build to group Go-term and genes.
 
-# compile_CART_results.py
-Allow to create a summary of CART_tree results, t-test are made to test each first condition, and tukey is made to test each combination of first-second comdition.
-results are stored in a csv table, with zero percentage
+## Installation
+Make sure you python >= 3.11.0, and run the setup file to download all the needed file/library.
 
-# check_CART_res.py
-Allow to have a representation for a given gene of the CART tree condition, by representing subsets distributions. t-test and tukey test are used here to give more information to user.
+## Cookbook
+run.sh contains a typical case of use of the full pipeline
+main.py has been setup to use the full pipeline
+PARAMETERS directory is free to be modified with your specific parameters.
+Parameters has been splitted according to analysis step.
