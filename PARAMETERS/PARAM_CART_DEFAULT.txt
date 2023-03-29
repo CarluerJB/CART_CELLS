@@ -11,6 +11,9 @@ MIN_SAMPLE_CUT 0.10
 # “log_loss”]
 CRITERION gini
 
+# CLASS_WEIGHT allow to penalize overpresent class
+# choice are : "None" or "balanced"
+CLASS_WEIGHT None
 
 ## FILTRATION PARAMETERS
 

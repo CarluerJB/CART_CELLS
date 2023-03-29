@@ -11,7 +11,7 @@ A pipeline allowing to build GRN based on results from CART_class.
 Using goatools high degree node' Go-term are analysed.
 GRN parameters can be setup by the user.
 
-### CLUSTERING_class
+### DENDROGRAM_TW_class
 Using GRN_class analysis, the clustering is made on goatools association analysis' p-values.
 Two way Dendrogram are build to group Go-term and genes.
 

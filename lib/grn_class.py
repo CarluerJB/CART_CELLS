@@ -7,6 +7,8 @@ import pandas as pd
 import os
 from unittest.mock import patch
 import sys
+from lib.utils_class import NoStdStreams
+import time
 
 RANDOM_STATE = 42
 
@@ -21,9 +23,9 @@ class GRN:
         self.path_node_table = self.save_dir_path + "network/node_table.csv"
         self.path_edge_table = self.save_dir_path + "network/edge_table.csv"
         self.path_resume_table = self.save_dir_path + "network/resume_table.csv"
-        self.path_resume_target = self.save_dir_path + "network/resume_TF_target.csv"
+        self.path_resume_target = self.save_dir_path + "network/resume_TF_target.txt"
         self.path_src_target_dir = self.save_dir_path + "network/genes_study/"
-        self.parameter_file_path = "PARAM_GRN_DEFAULT.txt"
+        self.parameter_file_path = "PARAMETERS/PARAM_GRN_DEFAULT.txt"
         self.TF_SHAPE = "ELLIPSE"
         self.GENE_SHAPE = "ROUND_RECTANGLE"
         self.TF_INTER_SHAPE = "TRIANGLE"
@@ -67,7 +69,10 @@ class GRN:
             "WRKY54": "AT2G40750",
         }
         self._perc_grn_interface = 0.0
+        self._perc_GO_interface = 0.0
+        self._time_per_GO = 0.1
         self.create_out_dir()
+        self.show_parameter()
 
     def load_parameter_file(self):
         with open(self.parameter_file_path, "r") as parameter_file:
@@ -108,6 +113,26 @@ class GRN:
                 if target_param == "THRES_CRITERION":
                     self.THRES_CRITERION = float(param)
 
+    def show_parameter(self):
+        print("\n\tPARAMETERS : ")
+        print("\t\tTF_SHAPE : ", self.TF_SHAPE)
+        print("\t\tGENE_SHAPE : ", self.GENE_SHAPE)
+        print("\t\tTF_INTER_SHAPE : ", self.TF_INTER_SHAPE)
+        print("\t\tTF_INTER_LINE_TYPE : ", self.TF_INTER_LINE_TYPE)
+        print("\t\tDEFAULT_LINE_TYPE : ", self.DEFAULT_LINE_TYPE)
+        print("\t\tTF_NODE_SIZE : ", self.TF_NODE_SIZE)
+        print("\t\tGENE_NODE_SIZE : ", self.GENE_NODE_SIZE)
+        print("\t\tTF_INTER_NODE_SIZE : ", self.TF_INTER_NODE_SIZE)
+        print("\t\tTF_NODE_COLOR : ", self.TF_NODE_COLOR)
+        print("\t\tGENE_NODE_COLOR : ", self.GENE_NODE_COLOR)
+        print("\t\tTF_INTER_NODE_COLOR : ", self.TF_INTER_NODE_COLOR)
+        print("\t\tDIR_EDGE_SIZE : ", self.DIR_EDGE_SIZE)
+        print("\t\tUNDIR_EDGE_SIZE : ", self.UNDIR_EDGE_SIZE)
+        print("\t\tDIR_EDGE_COLOR : ", self.DIR_EDGE_COLOR)
+        print("\t\tUNDIR_EDGE_COLOR : ", self.UNDIR_EDGE_COLOR)
+        print("\t\tTHRES_CRITERION : ", self.THRES_CRITERION)
+        print("\n")
+
     def create_out_dir(self):
         os.makedirs(self.save_dir_path + "network", exist_ok=True)
         os.makedirs(self.save_dir_path + "network/genes_study", exist_ok=True)
@@ -118,7 +143,7 @@ class GRN:
             self._perc_grn_interface += 100 / len(filtered_table.index)
             sys.stdout.write(
                 "\r GENERATING GRN : node {0} ({1}%)".format(
-                    target["AGI"], self._perc_grn_interface
+                    target["AGI"], round(self._perc_grn_interface, 3)
                 )
             )
             sys.stdout.flush()
@@ -299,6 +324,66 @@ class GRN:
                 file.write(elem + "\n")
 
         return matching_target
+    
+    def evaluate_GRN(self, net, input_genes, input_tfs, validation, validated_edge):
+        if subset_validated_edges is not None:
+        validated_edges = subset_validated_edges
+
+        if not all(v in ["CHIPSeq", "DAPSeq", "Litterature", "TARGET"] for v in validation):
+            raise ValueError("The validation type must be a vector of one or more of the following values: CHIPSeq, DAPSeq, Litterature, TARGET")
+
+        if not ("from" in net.columns and "to" in net.columns):
+            raise ValueError("The network dataframe should have two columns named 'from' and 'to'")
+
+        from_DIANE = False
+
+        if any(net["from"].str.contains('mean_')):
+            from_DIANE = True
+            grouped_net = net
+            net = flatten_edges(net)
+
+        matched = sum(pd.Series(net["from"].tolist() + net["to"].tolist()).str.contains("^AT[[:alnum:]]G[[:digit:]]{5}"))
+        if matched != 2 * len(net.index):
+            if matched > 0:
+                raise ValueError("Some of the gene IDs do not match the expected regex for Arabidopsis AGIs")
+            else:
+                raise ValueError("None of the gene IDs match the expected regex Arabidopsis AGIs")
+
+        if input_genes is None:
+            input_genes = pd.Series(net["to"].unique())
+
+        if any(pd.Series(input_genes).str.contains("mean_")):
+            distincts = [x for x in input_genes if not re.search(r'mean_', x)]
+            groups = set(input_genes) - set(distincts)
+            for group in groups:
+                distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
+            input_genes = distincts
+
+        if input_tfs is None:
+            input_tfs = pd.Series(net["from"].unique())
+
+        if any(pd.Series(input_tfs).str.contains("mean_")):
+            distincts = [x for x in input_tfs if not re.search(r'mean_', x)]
+            groups = set(input_tfs) - set(distincts)
+            for group in groups:
+                distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
+            input_tfs = distincts
+
+        validated_edges_specific = subset_validated_edges[subset_validated_edges["type"].isin(validation)]
+        validated_edges_specific_unique = validated_edges_specific.groupby(["from", "to"]).agg({'type': lambda x: '+'.join(x)}).reset_index()
+        validated_edges_specific_unique = validated_edges_specific_unique[(validated_edges_specific_unique["from"].isin(input_tfs)) & (validated_edges_specific_unique["to"].isin(input_genes))]
+
+        val = pd.merge(net, validated_edges_specific_unique, on=["from", "to"])
+
+        studied_tfs = pd.Series(validated_edges_specific_unique["from"].unique())
+        n_studied_interactions = len(net[net["from"].isin(studied_tfs)].index)
+
+        if len(studied_tfs) == 0:
+            print("No regulator present in your network was studied in the database \n")
+            return {"tp": None, "fp": None, "tpr": None, "fpr": None, "fn": None, "recall": None}
+
+        if len(val.index) == 0:
+            print("No predicted edge was found in the validation databse...Coffee to cheer you up? \n")
 
     def run_find_enrichment(self, sources, pval=0.05):
         # Copyright (c) 2010-2018, Haibao Tang
@@ -324,24 +409,26 @@ class GRN:
         # ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
         # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
         # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-        for source in sources:
-            testargs = [
-                "find_enrichment.py",
-                "--pval=" + str(pval),
-                "--indent",
-                self.path_src_target_dir + source + ".txt",
-                "/media/carluerj/Data/These/DATA/gene_regulator_network/population_list.txt",
-                "/media/carluerj/Data/These/DATA/gene_regulator_network/population_GO_term_compressed.txt",
-                "--outfile="
-                + self.save_dir_path
-                + "network/association_study/"
-                + source
-                + ".txt",
-            ]
-            with patch.object(sys, "argv", testargs):
-                from goatools.cli.find_enrichment import GoeaCliArgs
-                from goatools.cli.find_enrichment import GoeaCliFnc
+        print(" GENERATING GO Term association study, this can take few minutes...")
+        with NoStdStreams():
+            for source in sources:
+                testargs = [
+                    "find_enrichment.py",
+                    "--pval=" + str(pval),
+                    "--indent",
+                    self.path_src_target_dir + source + ".txt",
+                    "/media/carluerj/Data/These/DATA/gene_regulator_network/population_list.txt",
+                    "/media/carluerj/Data/These/DATA/gene_regulator_network/population_GO_term_compressed.txt",
+                    "--outfile="
+                    + self.save_dir_path
+                    + "network/association_study/"
+                    + source
+                    + ".txt",
+                ]
+                with patch.object(sys, "argv", testargs):
+                    from goatools.cli.find_enrichment import GoeaCliArgs
+                    from goatools.cli.find_enrichment import GoeaCliFnc
 
-                obj = GoeaCliFnc(GoeaCliArgs().args)
-                results_specified = obj.get_results()
-                obj.prt_results(results_specified)
+                    obj = GoeaCliFnc(GoeaCliArgs().args)
+                    results_specified = obj.get_results()
+                    obj.prt_results(results_specified)

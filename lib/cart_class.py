@@ -10,6 +10,7 @@ from scipy import stats
 from statsmodels.formula.api import ols
 import statsmodels.api as sm
 import sys
+import time
 
 np.seterr(divide="ignore")
 import warnings
@@ -26,7 +27,7 @@ class CART_TREE:
         tf_list_path,
         save_dir_path,
         analysis_type="genes",
-        parameter_file_path="PARAM_CART_DEFAULT.txt",
+        parameter_file_path="PARAMETERS/PARAM_CART_DEFAULT.txt",
     ):
         self.SORT_ORDER_REF = {
             "model_score": False,
@@ -44,6 +45,7 @@ class CART_TREE:
         self.THRES_CRITERION = 1.0
         self.THRES_ZERO_TE_TR = 1.0
         self.THRES_PVAL = 3.0
+        self.CLASS_WEIGHT = None
 
         self.parameter_file_path = parameter_file_path
         self.ge_matrix_path = ge_matrix_path
@@ -63,6 +65,8 @@ class CART_TREE:
             self.Y = self.ge_matrix.loc[self.tf_list].transpose()
             self.X_txt = "AGI"
             self.Y_txt = "TF"
+        if self.CLASS_TRANSFO == True:
+            self.y_to_quantile()
         self.compiled_table = pd.DataFrame(
             {
                 "AGI": [],
@@ -114,6 +118,7 @@ class CART_TREE:
             }
         )
         self._perc_cart_tree_interface = 0.0
+        self._time_per_tree = 0.1
 
     def load_parameter_file(self):
         with open(self.parameter_file_path, "r") as parameter_file:
@@ -135,12 +140,15 @@ class CART_TREE:
                     self.THRES_ZERO_TE_TR = float(param)
                 if target_param == "THRES_PVAL":
                     self.THRES_PVAL = float(param)
+                if target_param == "CLASS_WEIGHT":
+                    self.CLASS_WEIGHT = None if param[:-1] == "None" else "balanced"
 
     def show_parameter(self):
         print("\n\tPARAMETERS : ")
         print("\t\tCLASS_TRANSFO : ", self.CLASS_TRANSFO)
         print("\t\tMIN_SAMPLE_CUT : ", self.MIN_SAMPLE_CUT)
         print("\t\tCRITERION : ", self.CRITERION)
+        print("\t\tCLASS_WEIGHT : ", self.CLASS_WEIGHT)
         print("\t\tTHRES_MODEL : ", self.THRES_MODEL)
         print("\t\tTHRES_CRITERION : ", self.THRES_CRITERION)
         print("\t\tTHRES_ZERO_TE_TR : ", self.THRES_ZERO_TE_TR)
@@ -187,6 +195,7 @@ class CART_TREE:
             min_samples_leaf=self.MIN_SAMPLE_CUT,
             criterion=self.CRITERION,
             random_state=RANDOM_STATE,
+            class_weight=self.CLASS_WEIGHT,
         )
         clf_eval = clf_eval.fit(x_train, y_train)
         y_pred = clf_eval.predict(x_test)
@@ -206,19 +215,29 @@ class CART_TREE:
             Y_single = self.Y
         else:
             Y_single = self.Y[Y_id]
-            self._perc_cart_tree_interface += 100 / len(self.Y.columns[:100])
+            self._perc_cart_tree_interface += 1
         sys.stdout.write(
-            "\r GENERATING CART tree for: {0} ({1}%)".format(
-                Y_id, self._perc_cart_tree_interface
+            "\r GENERATING CART tree for: {0} ({1}%, time left: {2} sec)".format(
+                Y_id,
+                round(
+                    self._perc_cart_tree_interface * 100 / len(self.Y.columns[:100]), 3
+                ),
+                round(
+                    len(self.Y.columns[:100]) * self._time_per_tree
+                    - self._perc_cart_tree_interface * self._time_per_tree,
+                    3,
+                ),
             )
         )
         sys.stdout.flush()
+        self.start = time.time()
         self.clf = tree.DecisionTreeClassifier(
             min_samples_split=self.MIN_SAMPLE_CUT,
             max_depth=3,
             min_samples_leaf=self.MIN_SAMPLE_CUT,
             criterion=self.CRITERION,
             random_state=RANDOM_STATE,
+            class_weight=self.CLASS_WEIGHT,
         )
         self.clf = self.clf.fit(self.X, Y_single)
 
@@ -688,6 +707,8 @@ class CART_TREE:
                         compiled_row.loc[0, "N3_p-val_-+_--"] = mp_mm.pvalue[0]
                         i = i + 1
         self.compiled_table = pd.concat([self.compiled_table, compiled_row])
+        self.end = time.time()
+        self._time_per_tree = max(self.end - self.start, self._time_per_tree)
 
     def filter_cart_results(
         self,
