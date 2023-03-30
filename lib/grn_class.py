@@ -324,66 +324,67 @@ class GRN:
                 file.write(elem + "\n")
 
         return matching_target
-    
+
     def evaluate_GRN(self, net, input_genes, input_tfs, validation, validated_edge):
-        if subset_validated_edges is not None:
-        validated_edges = subset_validated_edges
+        pass
+        # if subset_validated_edges is not None:
+        #     validated_edges = subset_validated_edges
 
-        if not all(v in ["CHIPSeq", "DAPSeq", "Litterature", "TARGET"] for v in validation):
-            raise ValueError("The validation type must be a vector of one or more of the following values: CHIPSeq, DAPSeq, Litterature, TARGET")
+        # if not all(v in ["CHIPSeq", "DAPSeq", "Litterature", "TARGET"] for v in validation):
+        #     raise ValueError("The validation type must be a vector of one or more of the following values: CHIPSeq, DAPSeq, Litterature, TARGET")
 
-        if not ("from" in net.columns and "to" in net.columns):
-            raise ValueError("The network dataframe should have two columns named 'from' and 'to'")
+        # if not ("from" in net.columns and "to" in net.columns):
+        #     raise ValueError("The network dataframe should have two columns named 'from' and 'to'")
 
-        from_DIANE = False
+        # from_DIANE = False
 
-        if any(net["from"].str.contains('mean_')):
-            from_DIANE = True
-            grouped_net = net
-            net = flatten_edges(net)
+        # if any(net["from"].str.contains('mean_')):
+        #     from_DIANE = True
+        #     grouped_net = net
+        #     net = flatten_edges(net)
 
-        matched = sum(pd.Series(net["from"].tolist() + net["to"].tolist()).str.contains("^AT[[:alnum:]]G[[:digit:]]{5}"))
-        if matched != 2 * len(net.index):
-            if matched > 0:
-                raise ValueError("Some of the gene IDs do not match the expected regex for Arabidopsis AGIs")
-            else:
-                raise ValueError("None of the gene IDs match the expected regex Arabidopsis AGIs")
+        # matched = sum(pd.Series(net["from"].tolist() + net["to"].tolist()).str.contains("^AT[[:alnum:]]G[[:digit:]]{5}"))
+        # if matched != 2 * len(net.index):
+        #     if matched > 0:
+        #         raise ValueError("Some of the gene IDs do not match the expected regex for Arabidopsis AGIs")
+        #     else:
+        #         raise ValueError("None of the gene IDs match the expected regex Arabidopsis AGIs")
 
-        if input_genes is None:
-            input_genes = pd.Series(net["to"].unique())
+        # if input_genes is None:
+        #     input_genes = pd.Series(net["to"].unique())
 
-        if any(pd.Series(input_genes).str.contains("mean_")):
-            distincts = [x for x in input_genes if not re.search(r'mean_', x)]
-            groups = set(input_genes) - set(distincts)
-            for group in groups:
-                distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
-            input_genes = distincts
+        # if any(pd.Series(input_genes).str.contains("mean_")):
+        #     distincts = [x for x in input_genes if not re.search(r'mean_', x)]
+        #     groups = set(input_genes) - set(distincts)
+        #     for group in groups:
+        #         distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
+        #     input_genes = distincts
 
-        if input_tfs is None:
-            input_tfs = pd.Series(net["from"].unique())
+        # if input_tfs is None:
+        #     input_tfs = pd.Series(net["from"].unique())
 
-        if any(pd.Series(input_tfs).str.contains("mean_")):
-            distincts = [x for x in input_tfs if not re.search(r'mean_', x)]
-            groups = set(input_tfs) - set(distincts)
-            for group in groups:
-                distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
-            input_tfs = distincts
+        # if any(pd.Series(input_tfs).str.contains("mean_")):
+        #     distincts = [x for x in input_tfs if not re.search(r'mean_', x)]
+        #     groups = set(input_tfs) - set(distincts)
+        #     for group in groups:
+        #         distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
+        #     input_tfs = distincts
 
-        validated_edges_specific = subset_validated_edges[subset_validated_edges["type"].isin(validation)]
-        validated_edges_specific_unique = validated_edges_specific.groupby(["from", "to"]).agg({'type': lambda x: '+'.join(x)}).reset_index()
-        validated_edges_specific_unique = validated_edges_specific_unique[(validated_edges_specific_unique["from"].isin(input_tfs)) & (validated_edges_specific_unique["to"].isin(input_genes))]
+        # validated_edges_specific = subset_validated_edges[subset_validated_edges["type"].isin(validation)]
+        # validated_edges_specific_unique = validated_edges_specific.groupby(["from", "to"]).agg({'type': lambda x: '+'.join(x)}).reset_index()
+        # validated_edges_specific_unique = validated_edges_specific_unique[(validated_edges_specific_unique["from"].isin(input_tfs)) & (validated_edges_specific_unique["to"].isin(input_genes))]
 
-        val = pd.merge(net, validated_edges_specific_unique, on=["from", "to"])
+        # val = pd.merge(net, validated_edges_specific_unique, on=["from", "to"])
 
-        studied_tfs = pd.Series(validated_edges_specific_unique["from"].unique())
-        n_studied_interactions = len(net[net["from"].isin(studied_tfs)].index)
+        # studied_tfs = pd.Series(validated_edges_specific_unique["from"].unique())
+        # n_studied_interactions = len(net[net["from"].isin(studied_tfs)].index)
 
-        if len(studied_tfs) == 0:
-            print("No regulator present in your network was studied in the database \n")
-            return {"tp": None, "fp": None, "tpr": None, "fpr": None, "fn": None, "recall": None}
+        # if len(studied_tfs) == 0:
+        #     print("No regulator present in your network was studied in the database \n")
+        #     return {"tp": None, "fp": None, "tpr": None, "fpr": None, "fn": None, "recall": None}
 
-        if len(val.index) == 0:
-            print("No predicted edge was found in the validation databse...Coffee to cheer you up? \n")
+        # if len(val.index) == 0:
+        #     print("No predicted edge was found in the validation databse...Coffee to cheer you up? \n")
 
     def run_find_enrichment(self, sources, pval=0.05):
         # Copyright (c) 2010-2018, Haibao Tang
