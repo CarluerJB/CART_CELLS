@@ -19,6 +19,7 @@ for target in cart.Y.columns[:100]:
     cart.eval_model(target)
     cart.save_CART_tree(target)
     cart.compile_cart_results(target)
+    cart.save_cartlu_plot(target)
 cart.save_compiled_results()
 cart.filter_cart_results()
 cart.save_filtered_results()
