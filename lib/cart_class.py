@@ -11,6 +11,10 @@ from statsmodels.formula.api import ols
 import statsmodels.api as sm
 import sys
 import time
+import seaborn as sns
+from umap import UMAP
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 np.seterr(divide="ignore")
 import warnings
@@ -38,6 +42,7 @@ class CART_TREE:
             "iter_score": True,
             "p-val_1": False,
         }
+        self.run_UMAP = False
         self.CLASS_TRANSFO = False
         self.MIN_SAMPLE_CUT = 0.10
         self.CRITERION = "gini"
@@ -51,6 +56,7 @@ class CART_TREE:
         self.ge_matrix_path = ge_matrix_path
         self.tf_list_path = tf_list_path
         self.save_dir_path = save_dir_path
+        self.embedded_data_path = self.save_dir_path + "embedding.npy"
         self.create_out_dir()
         self.load_GE_matrix()
         self.load_tf_list()
@@ -60,9 +66,11 @@ class CART_TREE:
             self.X_txt = "TF"
             self.Y = self.ge_matrix.drop(self.tf_list).transpose()
             self.X = self.ge_matrix.loc[self.tf_list].transpose()
+            self.Y_norm = self.Y - self.Y.mean() / self.Y.std()
         else:
             self.X = self.ge_matrix.drop(self.tf_list).transpose()
             self.Y = self.ge_matrix.loc[self.tf_list].transpose()
+            self.Y_norm = self.Y - self.Y.mean() / self.Y.std()
             self.X_txt = "AGI"
             self.Y_txt = "TF"
         if self.CLASS_TRANSFO == True:
@@ -159,6 +167,7 @@ class CART_TREE:
         os.makedirs(self.save_dir_path + "score", exist_ok=True)
         os.makedirs(self.save_dir_path + "txt_tree", exist_ok=True)
         os.makedirs(self.save_dir_path + "tree", exist_ok=True)
+        os.makedirs(self.save_dir_path + "CARTLUPLOT/", exist_ok=True)
 
     def load_GE_matrix(self):
         data_src_type = self.ge_matrix_path.split(".")[1]
@@ -292,6 +301,1050 @@ class CART_TREE:
                 + str(self.model_evaluation["perc_0_total"])
                 + "\n"
             )
+
+    def save_cartlu_plot(self, TG):
+        # TODO deal with this
+        show_first_layer_res = False
+        full_first_layer = True
+        kde = True
+        common_norm = False
+        log_y_axis = False
+        histplot_multiple = "dodge"
+        histplot_binwidth = 0.2
+        colors_palette = sns.color_palette("tab10", 4)
+        ratio_sign = 10
+        show_zero = False
+        va_text_sign = "top"
+        run_UMAP = False
+        cell_width = 212
+        cell_height = 22
+        swatch_width = 48
+        xaxis_label_size = 8
+        plot_method = "print"
+
+        if self.run_UMAP:
+            model = UMAP(
+                n_components=2, min_dist=0.3, n_neighbors=30, metric="correlation"
+            )
+            embedded_data = model.fit_transform(self.Y_norm)
+            np.save(self.embedded_data_path, embedded_data)
+            self.run_UMAP = False
+        else:
+            embedded_data = np.load(self.embedded_data_path)
+        nb_plot = pd.notna(self.compiled_row[["TF1", "TF2", "TF3"]]).sum().sum()
+        full_first_layer = False
+        if nb_plot > 0:
+            TF_1 = self.compiled_row["TF1"].values[0]
+            lim_val_1 = self.compiled_row["lim1"].values[0]
+            is_node1_sign = None
+            if (self.compiled_row["p-val_1"] < 0.05).to_numpy()[0]:
+                is_node1_sign = "*"
+                if (self.compiled_row["p-val_1"] < 0.01).to_numpy()[0]:
+                    is_node1_sign = "**"
+                    if (self.compiled_row["p-val_1"] < 0.001).to_numpy()[0]:
+                        is_node1_sign = "***"
+            if nb_plot > 1:
+                show_first_layer_res = True
+                TF_2 = self.compiled_row["TF2"].values[0]
+                lim_val_2 = self.compiled_row["lim2"].values[0]
+                is_node2_pp_pm_sign = None
+                is_node2_pp_mp_sign = None
+                is_node2_pp_mm_sign = None
+                is_node2_pm_mp_sign = None
+                is_node2_pm_mm_sign = None
+                is_node2_mp_mm_sign = None
+                if (self.compiled_row["N2_p-val_++_+-"] < 0.05).to_numpy()[0]:
+                    is_node2_pp_pm_sign = "*"
+                    if (self.compiled_row["N2_p-val_++_+-"] < 0.01).to_numpy()[0]:
+                        is_node2_pp_pm_sign = "**"
+                        if (self.compiled_row["N2_p-val_++_+-"] < 0.001).to_numpy()[0]:
+                            is_node2_pp_pm_sign = "***"
+                if (self.compiled_row["N2_p-val_++_-+"] < 0.05).to_numpy()[0]:
+                    is_node2_pp_mp_sign = "*"
+                    if (self.compiled_row["N2_p-val_++_-+"] < 0.01).to_numpy()[0]:
+                        is_node2_pp_mp_sign = "**"
+                        if (self.compiled_row["N2_p-val_++_-+"] < 0.001).to_numpy()[0]:
+                            is_node2_pp_mp_sign = "***"
+                if (self.compiled_row["N2_p-val_++_--"] < 0.05).to_numpy()[0]:
+                    is_node2_pp_mm_sign = "*"
+                    if (self.compiled_row["N2_p-val_++_--"] < 0.01).to_numpy()[0]:
+                        is_node2_pp_mm_sign = "**"
+                        if (self.compiled_row["N2_p-val_++_--"] < 0.001).to_numpy()[0]:
+                            is_node2_pp_mm_sign = "***"
+                if (self.compiled_row["N2_p-val_+-_-+"] < 0.05).to_numpy()[0]:
+                    is_node2_pm_mp_sign = "*"
+                    if (self.compiled_row["N2_p-val_+-_-+"] < 0.01).to_numpy()[0]:
+                        is_node2_pm_mp_sign = "**"
+                        if (self.compiled_row["N2_p-val_+-_-+"] < 0.001).to_numpy()[0]:
+                            is_node2_pm_mp_sign = "***"
+                if (self.compiled_row["N2_p-val_+-_--"] < 0.05).to_numpy()[0]:
+                    is_node2_pm_mm_sign = "*"
+                    if (self.compiled_row["N2_p-val_+-_--"] < 0.01).to_numpy()[0]:
+                        is_node2_pm_mm_sign = "**"
+                        if (self.compiled_row["N2_p-val_+-_--"] < 0.001).to_numpy()[0]:
+                            is_node2_pm_mm_sign = "***"
+                if (self.compiled_row["N2_p-val_-+_--"] < 0.05).to_numpy()[0]:
+                    is_node2_mp_mm_sign = "*"
+                    if (self.compiled_row["N2_p-val_-+_--"] < 0.01).to_numpy()[0]:
+                        is_node2_mp_mm_sign = "**"
+                        if (self.compiled_row["N2_p-val_-+_--"] < 0.001).to_numpy()[0]:
+                            is_node2_mp_mm_sign = "***"
+
+                if nb_plot > 2:
+                    full_first_layer = True
+                    TF_3 = self.compiled_row["TF3"].values[0]
+                    lim_val_3 = self.compiled_row["lim3"].values[0]
+                    is_node3_pp_pm_sign = None
+                    is_node3_pp_mp_sign = None
+                    is_node3_pp_mm_sign = None
+                    is_node3_pm_mp_sign = None
+                    is_node3_pm_mm_sign = None
+                    is_node3_mp_mm_sign = None
+
+                    if (self.compiled_row["N3_p-val_++_+-"] < 0.05).to_numpy()[0]:
+                        is_node3_pp_pm_sign = "*"
+                        if (self.compiled_row["N3_p-val_++_+-"] < 0.01).to_numpy()[0]:
+                            is_node3_pp_pm_sign = "**"
+                            if (self.compiled_row["N3_p-val_++_+-"] < 0.001).to_numpy()[
+                                0
+                            ]:
+                                is_node3_pp_pm_sign = "***"
+                    if (self.compiled_row["N3_p-val_++_-+"] < 0.05).to_numpy()[0]:
+                        is_node3_pp_mp_sign = "*"
+                        if (self.compiled_row["N3_p-val_++_-+"] < 0.01).to_numpy()[0]:
+                            is_node3_pp_mp_sign = "**"
+                            if (self.compiled_row["N3_p-val_++_-+"] < 0.001).to_numpy()[
+                                0
+                            ]:
+                                is_node3_pp_mp_sign = "***"
+                    if (self.compiled_row["N3_p-val_++_--"] < 0.05).to_numpy()[0]:
+                        is_node3_pp_mm_sign = "*"
+                        if (self.compiled_row["N3_p-val_++_--"] < 0.01).to_numpy()[0]:
+                            is_node3_pp_mm_sign = "**"
+                            if (self.compiled_row["N3_p-val_++_--"] < 0.001).to_numpy()[
+                                0
+                            ]:
+                                is_node3_pp_mm_sign = "***"
+                    if (self.compiled_row["N3_p-val_+-_-+"] < 0.05).to_numpy()[0]:
+                        is_node3_pm_mp_sign = "*"
+                        if (self.compiled_row["N3_p-val_+-_-+"] < 0.01).to_numpy()[0]:
+                            is_node3_pm_mp_sign = "**"
+                            if (self.compiled_row["N3_p-val_+-_-+"] < 0.001).to_numpy()[
+                                0
+                            ]:
+                                is_node3_pm_mp_sign = "***"
+                    if (self.compiled_row["N3_p-val_+-_--"] < 0.05).to_numpy()[0]:
+                        is_node3_pm_mm_sign = "*"
+                        if (self.compiled_row["N3_p-val_+-_--"] < 0.01).to_numpy()[0]:
+                            is_node3_pm_mm_sign = "**"
+                            if (self.compiled_row["N3_p-val_+-_--"] < 0.001).to_numpy()[
+                                0
+                            ]:
+                                is_node3_pm_mm_sign = "***"
+                    if (self.compiled_row["N3_p-val_-+_--"] < 0.05).to_numpy()[0]:
+                        is_node3_mp_mm_sign = "*"
+                        if (self.compiled_row["N3_p-val_-+_--"] < 0.01).to_numpy()[0]:
+                            is_node3_mp_mm_sign = "**"
+                            if (self.compiled_row["N3_p-val_-+_--"] < 0.001).to_numpy()[
+                                0
+                            ]:
+                                is_node3_mp_mm_sign = "***"
+
+        figure, axis = plt.subplots(nb_plot, 4, figsize=(15, 10))
+        axis = axis.ravel()
+        TF_1_sup = self.Y.loc[self.X[TF_1] > lim_val_1, TG]
+        TF_1_inf = self.Y.loc[self.X[TF_1] <= lim_val_1, TG]
+        TF_1_sup_norm = np.nan_to_num(np.log10(TF_1_sup.values), neginf=0)
+        TF_1_inf_norm = np.nan_to_num(np.log10(TF_1_inf.values), neginf=0)
+        if not show_zero:
+            TF_1_sup_norm[TF_1_sup == 0] = np.nan
+            TF_1_inf_norm[TF_1_inf == 0] = np.nan
+        else:
+            TF_1_sup_norm = TF_1_sup_norm + 1
+            TF_1_inf_norm = TF_1_inf_norm + 1
+        sns.histplot(
+            [
+                TF_1_inf_norm if len(TF_1_inf_norm) > 0 else np.nan,
+                TF_1_sup_norm if len(TF_1_sup_norm) > 0 else np.nan,
+            ][::-1],
+            kde=kde,
+            legend=True,
+            ax=axis[0],
+            stat="percent",
+            common_norm=common_norm,
+            element="bars",
+            multiple=histplot_multiple,
+            binwidth=histplot_binwidth,
+            palette=colors_palette[:2][::-1],
+        )
+        legend = axis[0].get_legend()
+        handles = legend.legendHandles
+        legend.remove()
+        label_list = []
+        handle_list = []
+        label_list.append(TF_1 + " - " + "\n(" + str(len(TF_1_inf.index)) + " samples)")
+        label_list.append(TF_1 + " + " + "\n(" + str(len(TF_1_sup.index)) + " samples)")
+        for i, elem in enumerate(label_list):
+            row = i
+            y = row * cell_height
+            swatch_start_x = cell_width
+            text_pos_x = cell_width + swatch_width + 7
+            axis[0].text(
+                text_pos_x,
+                y,
+                elem,
+                fontsize=14,
+                horizontalalignment="left",
+                verticalalignment="center",
+            )
+            handle_list.append(
+                Rectangle(
+                    xy=(swatch_start_x, y - 9),
+                    width=swatch_width,
+                    height=18,
+                    facecolor=colors_palette[i],
+                    edgecolor="0.7",
+                )
+            )
+        axis[0].legend(handles=handle_list, labels=label_list)
+
+        sns.violinplot(
+            data=[TF_1_inf, TF_1_sup],
+            ax=axis[1],
+            showmeans=False,
+            showmedians=False,
+            showextrema=False,
+        )
+        axis[1].boxplot(
+            [TF_1_inf, TF_1_sup],
+            positions=[0, 1],
+            showfliers=True,
+            showcaps=True,
+            labels=None,
+        )
+        if log_y_axis:
+            axis[1].set(yscale="symlog")
+        # TODO add adaptative height
+        if is_node1_sign != None:
+            x1, x2 = 0, 1
+            y, h, col = axis[1].get_ylim()[1] + 2, 2, "k"
+            axis[1].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+            axis[1].text(
+                (x1 + x2) * 0.5,
+                y + h,
+                is_node1_sign,
+                ha="center",
+                va=va_text_sign,
+                color=col,
+            )
+
+        axis[1].set_xticklabels(["", "", TF_1 + " - ", TF_1 + " + "])
+        axis[1].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
+
+        axis[2].boxplot(
+            [TF_1_inf, TF_1_sup],
+            positions=[0, 1],
+            showfliers=False,
+            showcaps=True,
+            labels=None,
+        )
+        if log_y_axis:
+            axis[2].set(yscale="symlog")
+
+        axis[2].set_xticklabels([TF_1 + " - ", TF_1 + " + "])
+        axis[2].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
+
+        # UMAP
+        cell_sup = list(
+            set(self.Y_norm.index.values).intersection(set(TF_1_sup.index.values))
+        )
+        cell_inf = list(
+            set(self.Y_norm.index.values).intersection(set(TF_1_inf.index.values))
+        )
+        ind_dict = dict((k, i) for i, k in enumerate(self.Y_norm.index.values))
+        i_cell_sup = [ind_dict[x] for x in cell_sup]
+        i_cell_inf = [ind_dict[x] for x in cell_inf]
+
+        # plt.scatter(embedded_data[:,0], embedded_data[:,1], s=5, c="green", marker='.')
+        axis[3].scatter(
+            x=embedded_data[:, 0][i_cell_sup],
+            y=embedded_data[:, 1][i_cell_sup],
+            s=3,
+            color=colors_palette[:2][::-1][0],
+            marker=".",
+        )
+        axis[3].scatter(
+            x=embedded_data[:, 0][i_cell_inf],
+            y=embedded_data[:, 1][i_cell_inf],
+            s=3,
+            color=colors_palette[:2][::-1][1],
+            marker=".",
+        )
+
+        if show_first_layer_res:
+            # TF1 + TF2
+
+            TF_1_sup_TF_2_sup = self.Y.loc[
+                (self.X[TF_1] > lim_val_1) & (self.X[TF_2] > lim_val_2), TG
+            ]
+            TF_1_sup_TF_2_inf = self.Y.loc[
+                (self.X[TF_1] > lim_val_1) & (self.X[TF_2] <= lim_val_2), TG
+            ]
+            TF_1_inf_TF_2_sup = self.Y.loc[
+                (self.X[TF_1] <= lim_val_1) & (self.X[TF_2] > lim_val_2), TG
+            ]
+            TF_1_inf_TF_2_inf = self.Y.loc[
+                (self.X[TF_1] <= lim_val_1) & (self.X[TF_2] <= lim_val_2), TG
+            ]
+
+            TF_1_sup_TF_2_sup_norm = np.nan_to_num(
+                np.log10(TF_1_sup_TF_2_sup), neginf=0
+            )
+            TF_1_sup_TF_2_inf_norm = np.nan_to_num(
+                np.log10(TF_1_sup_TF_2_inf), neginf=0
+            )
+            TF_1_inf_TF_2_sup_norm = np.nan_to_num(
+                np.log10(TF_1_inf_TF_2_sup), neginf=0
+            )
+            TF_1_inf_TF_2_inf_norm = np.nan_to_num(
+                np.log10(TF_1_inf_TF_2_inf), neginf=0
+            )
+
+            if not show_zero:
+                TF_1_sup_TF_2_sup_norm[TF_1_sup_TF_2_sup == 0] = np.nan
+                TF_1_sup_TF_2_inf_norm[TF_1_sup_TF_2_inf == 0] = np.nan
+                TF_1_inf_TF_2_sup_norm[TF_1_inf_TF_2_sup == 0] = np.nan
+                TF_1_inf_TF_2_inf_norm[TF_1_inf_TF_2_inf == 0] = np.nan
+            else:
+                TF_1_sup_TF_2_sup_norm = TF_1_sup_TF_2_sup_norm + 1
+                TF_1_sup_TF_2_inf_norm = TF_1_sup_TF_2_inf_norm + 1
+                TF_1_inf_TF_2_sup_norm = TF_1_inf_TF_2_sup_norm + 1
+                TF_1_inf_TF_2_inf_norm = TF_1_inf_TF_2_inf_norm + 1
+
+            sns.histplot(
+                data=[
+                    TF_1_inf_TF_2_inf_norm,
+                    TF_1_inf_TF_2_sup_norm,
+                    TF_1_sup_TF_2_inf_norm,
+                    TF_1_sup_TF_2_sup_norm,
+                ][::-1],
+                kde=kde,
+                legend=True,
+                ax=axis[4],
+                stat="percent",
+                common_norm=common_norm,
+                element="bars",
+                multiple=histplot_multiple,
+                binwidth=histplot_binwidth,
+                palette=colors_palette[::-1],
+            )
+            legend = axis[4].get_legend()
+            handles = legend.legendHandles
+            legend.remove()
+            label_list = []
+            handle_list = []
+            label_list.append(
+                TF_1
+                + " - "
+                + TF_2
+                + " - "
+                + "\n("
+                + str(len(TF_1_inf_TF_2_inf.index))
+                + " samples)"
+            )
+            label_list.append(
+                TF_1
+                + " - "
+                + TF_2
+                + " + "
+                + "\n("
+                + str(len(TF_1_inf_TF_2_sup.index))
+                + " samples)"
+            )
+            label_list.append(
+                TF_1
+                + " + "
+                + TF_2
+                + " - "
+                + "\n("
+                + str(len(TF_1_sup_TF_2_inf.index))
+                + " samples)"
+            )
+            label_list.append(
+                TF_1
+                + " + "
+                + TF_2
+                + " + "
+                + "\n("
+                + str(len(TF_1_sup_TF_2_sup.index))
+                + " samples)"
+            )
+            for i, elem in enumerate(label_list):
+                row = i
+                y = row * cell_height
+                swatch_start_x = cell_width
+                text_pos_x = cell_width + swatch_width + 7
+                axis[4].text(
+                    text_pos_x,
+                    y,
+                    elem,
+                    fontsize=14,
+                    horizontalalignment="left",
+                    verticalalignment="center",
+                )
+                handle_list.append(
+                    Rectangle(
+                        xy=(swatch_start_x, y - 9),
+                        width=swatch_width,
+                        height=18,
+                        facecolor=colors_palette[i],
+                        edgecolor="0.7",
+                    )
+                )
+            axis[4].legend(handles=handle_list, labels=label_list)
+            sns.violinplot(
+                [
+                    TF_1_inf_TF_2_inf,
+                    TF_1_inf_TF_2_sup,
+                    TF_1_sup_TF_2_inf,
+                    TF_1_sup_TF_2_sup,
+                ],
+                ax=axis[5],
+                showmeans=True,
+                showmedians=True,
+                showextrema=True,
+            )
+            axis[5].boxplot(
+                [
+                    TF_1_inf_TF_2_inf,
+                    TF_1_inf_TF_2_sup,
+                    TF_1_sup_TF_2_inf,
+                    TF_1_sup_TF_2_sup,
+                ],
+                positions=[0, 1, 2, 3],
+                showfliers=True,  # Do not show the outliers beyond the caps.
+                showcaps=True,
+                labels=None,
+            )  # Do not show the caps
+            if log_y_axis:
+                axis[5].set(yscale="symlog")
+
+            max_val_ax5 = axis[5].get_ylim()[1]
+            height_p_sign_ax5 = int(max_val_ax5 / ratio_sign)
+            y_ax5, h_ax5, col_ax5 = max_val_ax5 + 2, height_p_sign_ax5, "k"
+
+            axis[6].boxplot(
+                [
+                    TF_1_inf_TF_2_inf,
+                    TF_1_inf_TF_2_sup,
+                    TF_1_sup_TF_2_inf,
+                    TF_1_sup_TF_2_sup,
+                ],
+                positions=[0, 1, 2, 3],
+                showfliers=False,  # Do not show the outliers beyond the caps.
+                showcaps=True,
+                labels=None,
+            )  # Do not show the caps
+            if log_y_axis:
+                axis[6].set(yscale="symlog")
+
+            y_add = 1
+            if is_node2_pp_pm_sign != None:
+                x1, x2 = 2, 3
+                axis[5].plot(
+                    [x1, x1, x2, x2],
+                    [y_ax5, y_ax5 + h_ax5, y_ax5 + h_ax5, y_ax5],
+                    lw=1.5,
+                    c=col_ax5,
+                )
+                axis[5].text(
+                    (x1 + x2) * 0.5,
+                    y_ax5 + h_ax5,
+                    is_node2_pp_pm_sign,
+                    ha="center",
+                    va=va_text_sign,
+                    color=col_ax5,
+                )
+                y_add = 1
+            if is_node2_mp_mm_sign != None:
+                x1, x2 = 0, 1
+                axis[5].plot(
+                    [x1, x1, x2, x2],
+                    [y_ax5, y_ax5 + h_ax5, y_ax5 + h_ax5, y_ax5],
+                    lw=1.5,
+                    c=col_ax5,
+                )
+                axis[5].text(
+                    (x1 + x2) * 0.5,
+                    y_ax5 + h_ax5,
+                    is_node2_mp_mm_sign,
+                    ha="center",
+                    va=va_text_sign,
+                    color=col_ax5,
+                )
+                y_add = 1
+
+            if is_node2_pp_mp_sign != None:
+                x1, x2 = 1, 3
+                y_ax5, h_ax5, col_ax5 = (
+                    max_val_ax5
+                    + 2
+                    + (y_add * height_p_sign_ax5)
+                    + int((y_add * height_p_sign_ax5) / 3),
+                    height_p_sign_ax5,
+                    "k",
+                )
+                axis[5].plot(
+                    [x1, x1, x2, x2],
+                    [y_ax5, y_ax5 + h_ax5, y_ax5 + h_ax5, y_ax5],
+                    lw=1.5,
+                    c=col_ax5,
+                )
+                axis[5].text(
+                    (x1 + x2) * 0.5,
+                    y_ax5 + h_ax5,
+                    is_node2_pp_mp_sign,
+                    ha="center",
+                    va=va_text_sign,
+                    color=col_ax5,
+                )
+                y_add += 1
+
+            if is_node2_pm_mm_sign != None:
+                x1, x2 = 0, 2
+                y_ax5, h_ax5, col_ax5 = (
+                    max_val_ax5
+                    + 2
+                    + (y_add * height_p_sign_ax5)
+                    + int((y_add * height_p_sign_ax5) / 3),
+                    height_p_sign_ax5,
+                    "k",
+                )
+                axis[5].plot(
+                    [x1, x1, x2, x2],
+                    [y_ax5, y_ax5 + h_ax5, y_ax5 + h_ax5, y_ax5],
+                    lw=1.5,
+                    c=col_ax5,
+                )
+                axis[5].text(
+                    (x1 + x2) * 0.5,
+                    y_ax5 + h_ax5,
+                    is_node2_pm_mm_sign,
+                    ha="center",
+                    va=va_text_sign,
+                    color=col_ax5,
+                )
+                y_add += 1
+
+            if is_node2_pm_mp_sign != None:
+                x1, x2 = 1, 2
+                y_ax5, h_ax5, col_ax5 = (
+                    max_val_ax5
+                    + 2
+                    + (y_add * height_p_sign_ax5)
+                    + int((y_add * height_p_sign_ax5) / 3),
+                    height_p_sign_ax5,
+                    "k",
+                )
+                axis[5].plot(
+                    [x1, x1, x2, x2],
+                    [y_ax5, y_ax5 + h_ax5, y_ax5 + h_ax5, y_ax5],
+                    lw=1.5,
+                    c=col_ax5,
+                )
+                axis[5].text(
+                    (x1 + x2) * 0.5,
+                    y_ax5 + h_ax5,
+                    is_node2_pm_mp_sign,
+                    ha="center",
+                    va=va_text_sign,
+                    color=col_ax5,
+                )
+                y_add += 1
+
+            if is_node2_pp_mm_sign != None:
+                x1, x2 = 0, 3
+                y_ax5, h_ax5, col_ax5 = (
+                    max_val_ax5
+                    + 2
+                    + (y_add * height_p_sign_ax5)
+                    + int((y_add * height_p_sign_ax5) / 3),
+                    height_p_sign_ax5,
+                    "k",
+                )
+                axis[5].plot(
+                    [x1, x1, x2, x2],
+                    [y_ax5, y_ax5 + h_ax5, y_ax5 + h_ax5, y_ax5],
+                    lw=1.5,
+                    c=col_ax5,
+                )
+                axis[5].text(
+                    (x1 + x2) * 0.5,
+                    y_ax5 + h_ax5,
+                    is_node2_pp_mm_sign,
+                    ha="center",
+                    va=va_text_sign,
+                    color=col_ax5,
+                )
+                y_add += 1
+            axis[5].set_xticklabels(
+                [
+                    "",
+                    "",
+                    "",
+                    "",
+                    TF_1 + " - " + TF_2 + " - ",
+                    TF_1 + " - " + TF_2 + " + ",
+                    TF_1 + " + " + TF_2 + " - ",
+                    TF_1 + " + " + TF_2 + " + ",
+                ]
+            )
+            axis[5].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
+            axis[6].set_xticklabels(
+                [
+                    TF_1 + " - " + TF_2 + " - ",
+                    TF_1 + " - " + TF_2 + " + ",
+                    TF_1 + " + " + TF_2 + " - ",
+                    TF_1 + " + " + TF_2 + " + ",
+                ]
+            )
+            axis[6].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
+            cell_sup_sup = list(
+                set(self.Y_norm.index.values).intersection(
+                    set(TF_1_sup_TF_2_sup.index.values)
+                )
+            )
+            cell_sup_inf = list(
+                set(self.Y_norm.index.values).intersection(
+                    set(TF_1_sup_TF_2_inf.index.values)
+                )
+            )
+            cell_inf_sup = list(
+                set(self.Y_norm.index.values).intersection(
+                    set(TF_1_inf_TF_2_sup.index.values)
+                )
+            )
+            cell_inf_inf = list(
+                set(self.Y_norm.index.values).intersection(
+                    set(TF_1_inf_TF_2_inf.index.values)
+                )
+            )
+
+            i_cell_sup_sup = [ind_dict[x] for x in cell_sup_sup]
+            i_cell_sup_inf = [ind_dict[x] for x in cell_sup_inf]
+            i_cell_inf_sup = [ind_dict[x] for x in cell_inf_sup]
+            i_cell_inf_inf = [ind_dict[x] for x in cell_inf_inf]
+
+            # plt.scatter(embedded_data[:,0], embedded_data[:,1], s=5, c="green", marker='.')
+            axis[7].scatter(
+                x=embedded_data[:, 0][i_cell_sup_sup],
+                y=embedded_data[:, 1][i_cell_sup_sup],
+                s=3,
+                color=colors_palette[::-1][0],
+                marker=".",
+            )
+            axis[7].scatter(
+                x=embedded_data[:, 0][i_cell_sup_inf],
+                y=embedded_data[:, 1][i_cell_sup_inf],
+                s=3,
+                color=colors_palette[::-1][1],
+                marker=".",
+            )
+            axis[7].scatter(
+                x=embedded_data[:, 0][i_cell_inf_sup],
+                y=embedded_data[:, 1][i_cell_inf_sup],
+                s=3,
+                color=colors_palette[::-1][2],
+                marker=".",
+            )
+            axis[7].scatter(
+                x=embedded_data[:, 0][i_cell_inf_inf],
+                y=embedded_data[:, 1][i_cell_inf_inf],
+                s=3,
+                color=colors_palette[::-1][3],
+                marker=".",
+            )
+            if full_first_layer:
+                # TF1 + TF3
+
+                TF_1_sup_TF_3_sup = self.Y.loc[
+                    (self.X[TF_1] > lim_val_1) & (self.X[TF_3] > lim_val_3), TG
+                ]
+                TF_1_sup_TF_3_inf = self.Y.loc[
+                    (self.X[TF_1] > lim_val_1) & (self.X[TF_3] <= lim_val_3), TG
+                ]
+                TF_1_inf_TF_3_sup = self.Y.loc[
+                    (self.X[TF_1] <= lim_val_1) & (self.X[TF_3] > lim_val_3), TG
+                ]
+                TF_1_inf_TF_3_inf = self.Y.loc[
+                    (self.X[TF_1] <= lim_val_1) & (self.X[TF_3] <= lim_val_3), TG
+                ]
+
+                TF_1_sup_TF_3_sup_norm = np.nan_to_num(
+                    np.log10(TF_1_sup_TF_3_sup), neginf=0
+                )
+                TF_1_sup_TF_3_inf_norm = np.nan_to_num(
+                    np.log10(TF_1_sup_TF_3_inf), neginf=0
+                )
+                TF_1_inf_TF_3_sup_norm = np.nan_to_num(
+                    np.log10(TF_1_inf_TF_3_sup), neginf=0
+                )
+                TF_1_inf_TF_3_inf_norm = np.nan_to_num(
+                    np.log10(TF_1_inf_TF_3_inf), neginf=0
+                )
+
+                if not show_zero:
+                    TF_1_sup_TF_3_sup_norm[TF_1_sup_TF_3_sup == 0] = np.nan
+                    TF_1_sup_TF_3_inf_norm[TF_1_sup_TF_3_inf == 0] = np.nan
+                    TF_1_inf_TF_3_sup_norm[TF_1_inf_TF_3_sup == 0] = np.nan
+                    TF_1_inf_TF_3_inf_norm[TF_1_inf_TF_3_inf == 0] = np.nan
+                else:
+                    TF_1_sup_TF_3_sup_norm = TF_1_sup_TF_3_sup_norm + 1
+                    TF_1_sup_TF_3_inf_norm = TF_1_sup_TF_3_inf_norm + 1
+                    TF_1_inf_TF_3_sup_norm = TF_1_inf_TF_3_sup_norm + 1
+                    TF_1_inf_TF_3_inf_norm = TF_1_inf_TF_3_inf_norm + 1
+
+                sns.histplot(
+                    data=[
+                        TF_1_inf_TF_3_inf_norm,
+                        TF_1_inf_TF_3_sup_norm,
+                        TF_1_sup_TF_3_inf_norm,
+                        TF_1_sup_TF_3_sup_norm,
+                    ][::-1],
+                    kde=kde,
+                    legend=True,
+                    ax=axis[8],
+                    stat="percent",
+                    common_norm=common_norm,
+                    element="bars",
+                    multiple=histplot_multiple,
+                    binwidth=histplot_binwidth,
+                    palette=colors_palette[::-1],
+                    label="data",
+                )
+
+                label_list = []
+                handle_list = []
+                legend = axis[8].get_legend()
+                handles = legend.legendHandles
+                legend.remove()
+                label_list.append(
+                    TF_1
+                    + " - "
+                    + TF_3
+                    + " - "
+                    + "\n("
+                    + str(len(TF_1_inf_TF_3_inf.index))
+                    + " samples)"
+                )
+                label_list.append(
+                    TF_1
+                    + " - "
+                    + TF_3
+                    + " + "
+                    + "\n("
+                    + str(len(TF_1_inf_TF_3_sup.index))
+                    + " samples)"
+                )
+                label_list.append(
+                    TF_1
+                    + " + "
+                    + TF_3
+                    + " - "
+                    + "\n("
+                    + str(len(TF_1_sup_TF_3_inf.index))
+                    + " samples)"
+                )
+                label_list.append(
+                    TF_1
+                    + " + "
+                    + TF_3
+                    + " + "
+                    + "\n("
+                    + str(len(TF_1_sup_TF_3_sup.index))
+                    + " samples)"
+                )
+                for i, elem in enumerate(label_list):
+                    row = i
+                    y = row * cell_height
+                    swatch_start_x = cell_width
+                    text_pos_x = cell_width + swatch_width + 7
+                    axis[8].text(
+                        text_pos_x,
+                        y,
+                        elem,
+                        fontsize=14,
+                        horizontalalignment="left",
+                        verticalalignment="center",
+                    )
+                    handle_list.append(
+                        Rectangle(
+                            xy=(swatch_start_x, y - 9),
+                            width=swatch_width,
+                            height=18,
+                            facecolor=colors_palette[i],
+                            edgecolor="0.7",
+                        )
+                    )
+                axis[8].legend(handles=handle_list, labels=label_list)
+
+                sns.violinplot(
+                    [
+                        TF_1_inf_TF_3_inf,
+                        TF_1_inf_TF_3_sup,
+                        TF_1_sup_TF_3_inf,
+                        TF_1_sup_TF_3_sup,
+                    ],
+                    ax=axis[9],
+                    showmeans=True,
+                    showmedians=True,
+                    showextrema=True,
+                )
+                axis[9].boxplot(
+                    [
+                        TF_1_inf_TF_3_inf,
+                        TF_1_inf_TF_3_sup,
+                        TF_1_sup_TF_3_inf,
+                        TF_1_sup_TF_3_sup,
+                    ],
+                    positions=[0, 1, 2, 3],
+                    showfliers=True,  # Do not show the outliers beyond the caps.
+                    showcaps=True,
+                    labels=None,
+                )  # Do not show the caps
+                if log_y_axis:
+                    axis[9].set(yscale="symlog")
+
+                axis[10].boxplot(
+                    [
+                        TF_1_inf_TF_3_inf,
+                        TF_1_inf_TF_3_sup,
+                        TF_1_sup_TF_3_inf,
+                        TF_1_sup_TF_3_sup,
+                    ],
+                    positions=[0, 1, 2, 3],
+                    showfliers=False,  # Do not show the outliers beyond the caps.
+                    showcaps=True,
+                    labels=None,
+                )  # Do not show the caps
+                if log_y_axis:
+                    axis[10].set(yscale="symlog")
+
+                max_val = axis[9].get_ylim()[1]
+                height_p_sign = int(max_val / ratio_sign)
+                y, h, col = max_val + 2, height_p_sign, "k"
+                y_add = 1
+                if is_node3_pp_pm_sign != None:
+                    x1, x2 = 2, 3
+                    axis[9].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+                    axis[9].text(
+                        (x1 + x2) * 0.5,
+                        y + h,
+                        is_node3_pp_pm_sign,
+                        ha="center",
+                        va=va_text_sign,
+                        color=col,
+                    )
+                    y_add = 2
+                if is_node3_mp_mm_sign != None:
+                    x1, x2 = 0, 1
+                    axis[9].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+                    axis[9].text(
+                        (x1 + x2) * 0.5,
+                        y + h,
+                        is_node3_mp_mm_sign,
+                        ha="center",
+                        va=va_text_sign,
+                        color=col,
+                    )
+                    y_add = 2
+
+                if is_node3_pp_mp_sign != None:
+                    y, h, col = (
+                        max_val
+                        + 2
+                        + (y_add * height_p_sign)
+                        + int((y_add * height_p_sign) / 3),
+                        height_p_sign,
+                        "k",
+                    )
+                    x1, x2 = 1, 3
+                    axis[9].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+                    axis[9].text(
+                        (x1 + x2) * 0.5,
+                        y + h,
+                        is_node3_pp_mp_sign,
+                        ha="center",
+                        va=va_text_sign,
+                        color=col,
+                    )
+                    y_add += 1
+
+                if is_node3_pm_mm_sign != None:
+                    y, h, col = (
+                        max_val
+                        + 2
+                        + (y_add * height_p_sign)
+                        + int((y_add * height_p_sign) / 3),
+                        height_p_sign,
+                        "k",
+                    )
+                    x1, x2 = 0, 2
+                    axis[9].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+                    axis[9].text(
+                        (x1 + x2) * 0.5,
+                        y + h,
+                        is_node3_pm_mm_sign,
+                        ha="center",
+                        va=va_text_sign,
+                        color=col,
+                    )
+                    y_add += 1
+
+                if is_node3_pm_mp_sign != None:
+                    y, h, col = (
+                        max_val
+                        + 2
+                        + (y_add * height_p_sign)
+                        + int((y_add * height_p_sign) / 3),
+                        height_p_sign,
+                        "k",
+                    )
+                    x1, x2 = 1, 2
+                    axis[9].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+                    axis[9].text(
+                        (x1 + x2) * 0.5,
+                        y + h,
+                        is_node3_pm_mp_sign,
+                        ha="center",
+                        va=va_text_sign,
+                        color=col,
+                    )
+                    y_add += 1
+
+                if is_node3_pp_mm_sign != None:
+                    y, h, col = (
+                        max_val
+                        + 2
+                        + (y_add * height_p_sign)
+                        + int((y_add * height_p_sign) / 3),
+                        height_p_sign,
+                        "k",
+                    )
+                    x1, x2 = 0, 3
+                    axis[9].plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
+                    axis[9].text(
+                        (x1 + x2) * 0.5,
+                        y + h,
+                        is_node3_pp_mm_sign,
+                        ha="center",
+                        va=va_text_sign,
+                        color=col,
+                    )
+                    y_add += 1
+                axis[9].set_xticklabels(
+                    [
+                        "",
+                        "",
+                        "",
+                        "",
+                        TF_1 + " - " + TF_3 + " - ",
+                        TF_1 + " - " + TF_3 + " + ",
+                        TF_1 + " + " + TF_3 + " - ",
+                        TF_1 + " + " + TF_3 + " + ",
+                    ]
+                )
+                axis[9].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
+                axis[10].set_xticklabels(
+                    [
+                        TF_1 + " - " + TF_3 + " - ",
+                        TF_1 + " - " + TF_3 + " + ",
+                        TF_1 + " + " + TF_3 + " - ",
+                        TF_1 + " + " + TF_3 + " + ",
+                    ]
+                )
+                axis[10].xaxis.set_tick_params(labelsize=xaxis_label_size, rotation=10)
+                cell_sup_sup = list(
+                    set(self.Y_norm.index.values).intersection(
+                        set(TF_1_sup_TF_3_sup.index.values)
+                    )
+                )
+                cell_sup_inf = list(
+                    set(self.Y_norm.index.values).intersection(
+                        set(TF_1_sup_TF_3_inf.index.values)
+                    )
+                )
+                cell_inf_sup = list(
+                    set(self.Y_norm.index.values).intersection(
+                        set(TF_1_inf_TF_3_sup.index.values)
+                    )
+                )
+                cell_inf_inf = list(
+                    set(self.Y_norm.index.values).intersection(
+                        set(TF_1_inf_TF_3_inf.index.values)
+                    )
+                )
+
+                i_cell_sup_sup = [ind_dict[x] for x in cell_sup_sup]
+                i_cell_sup_inf = [ind_dict[x] for x in cell_sup_inf]
+                i_cell_inf_sup = [ind_dict[x] for x in cell_inf_sup]
+                i_cell_inf_inf = [ind_dict[x] for x in cell_inf_inf]
+
+                axis[11].scatter(
+                    x=embedded_data[:, 0][i_cell_sup_sup],
+                    y=embedded_data[:, 1][i_cell_sup_sup],
+                    s=3,
+                    color=colors_palette[::-1][0],
+                    marker=".",
+                )
+                axis[11].scatter(
+                    x=embedded_data[:, 0][i_cell_sup_inf],
+                    y=embedded_data[:, 1][i_cell_sup_inf],
+                    s=3,
+                    color=colors_palette[::-1][1],
+                    marker=".",
+                )
+                axis[11].scatter(
+                    x=embedded_data[:, 0][i_cell_inf_sup],
+                    y=embedded_data[:, 1][i_cell_inf_sup],
+                    s=3,
+                    color=colors_palette[::-1][2],
+                    marker=".",
+                )
+                axis[11].scatter(
+                    x=embedded_data[:, 0][i_cell_inf_inf],
+                    y=embedded_data[:, 1][i_cell_inf_inf],
+                    s=3,
+                    color=colors_palette[::-1][3],
+                    marker=".",
+                )
+        if full_first_layer:
+            plt.suptitle(
+                str(TG)
+                + "\nCART Threshold : \n"
+                + "{:<10s}{:<4s}\n".format(str(TF_1), str(lim_val_1))
+                + "{:<10s}{:<4s}\n".format(str(TF_2), str(lim_val_2))
+                + "{:<10s}{:<4s}\n".format(str(TF_3), str(lim_val_3))
+            )
+        elif show_first_layer_res:
+            plt.suptitle(
+                str(TG)
+                + "\nCART Threshold : \n"
+                + "{:<10s}{:<4s}\n".format(str(TF_1), str(lim_val_1))
+                + "{:<10s}{:<4s}\n".format(str(TF_2), str(lim_val_2))
+            )
+        else:
+            plt.suptitle(
+                str(TG)
+                + "\nCART Threshold : \n"
+                + "{:<10s}{:<4s}\n".format(str(TF_1), str(lim_val_1))
+            )
+        if plot_method == "show":
+            plt.show()
+        elif plot_method == "print":
+            plt.savefig(self.save_dir_path + "CARTLUPLOT/" + str(TG) + ".png")
+        else:
+            raise (NotImplementedError())
 
     def save_compiled_results(self):
         self.compiled_table.to_csv(
@@ -655,58 +1708,100 @@ class CART_TREE:
                 # TF_1_inf_TF_3_inf['sign'] = "--"
                 # tukey_data = TF_1_sup_TF_3_sup.append([TF_1_sup_TF_3_sup, TF_1_sup_TF_3_inf, TF_1_inf_TF_3_sup, TF_1_inf_TF_3_inf])
                 # result = pairwise_tukeyhsd(tukey_datcompiled_row[cond[Y_txt]], groups=tukey_datcompiled_row['sign'])
-                pp_pm = stats.mannwhitneyu(
-                    TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
-                    TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
-                )
-                pp_mp = stats.mannwhitneyu(
-                    TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
-                )
-                pp_mm = stats.mannwhitneyu(
-                    TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
-                )
-                pm_mp = stats.mannwhitneyu(
-                    TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
-                )
-                pm_mm = stats.mannwhitneyu(
-                    TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
-                )
-                mp_mm = stats.mannwhitneyu(
-                    TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
-                )
+                pp_pm = 1.0
+                pp_mp = 1.0
+                pp_mm = 1.0
+                pm_mp = 1.0
+                pm_mm = 1.0
+                mp_mm = 1.0
+
+                if not TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]].empty:
+                    if not TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]].empty:
+                        pp_pm = stats.mannwhitneyu(
+                            TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
+                            TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
+                        ).pvalue[0]
+                    if not TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]].empty:
+                        pp_mp = stats.mannwhitneyu(
+                            TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
+                        ).pvalue[0]
+                    if not TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]].empty:
+                        pp_mm = stats.mannwhitneyu(
+                            TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
+                        ).pvalue[0]
+                if TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]].empty:
+                    if TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]].empty:
+                        pm_mp = stats.mannwhitneyu(
+                            TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
+                        ).pvalue[0]
+                    if TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]].empty:
+                        pm_mm = stats.mannwhitneyu(
+                            TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
+                        ).pvalue[0]
+                if TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]].empty:
+                    if TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]].empty:
+                        mp_mm = stats.mannwhitneyu(
+                            TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
+                        ).pvalue[0]
+                # pp_pm = stats.mannwhitneyu(
+                #     TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
+                #     TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
+                # )
+                # pp_mp = stats.mannwhitneyu(
+                #     TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
+                #     TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
+                # )
+                # pp_mm = stats.mannwhitneyu(
+                #     TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
+                #     TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
+                # )
+                # pm_mp = stats.mannwhitneyu(
+                #     TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
+                #     TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
+                # )
+                # pm_mm = stats.mannwhitneyu(
+                #     TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
+                #     TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
+                # )
+                # mp_mm = stats.mannwhitneyu(
+                #     TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
+                #     TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
+                # )
 
                 compiled_row.loc[0, "mean_1+3+"] = TF_1_sup_TF_3_sup.mean().values
                 compiled_row.loc[0, "mean_1-3+"] = TF_1_inf_TF_3_sup.mean().values
                 compiled_row.loc[0, "mean_1+3-"] = TF_1_sup_TF_3_inf.mean().values
                 compiled_row.loc[0, "mean_1-3-"] = TF_1_inf_TF_3_inf.mean().values
+
                 i = 0
                 if len(TF_1_sup_TF_3_sup.index) > 0:
                     if len(TF_1_sup_TF_3_inf.index) > 0:
-                        compiled_row.loc[0, "N3_p-val_++_+-"] = pp_pm.pvalue[0]
+                        compiled_row.loc[0, "N3_p-val_++_+-"] = pp_pm
                         i = i + 1
                     if len(TF_1_inf_TF_3_sup.index) > 0:
-                        compiled_row.loc[0, "N3_p-val_++_-+"] = pp_mp.pvalue[0]
+                        compiled_row.loc[0, "N3_p-val_++_-+"] = pp_mp
                         i = i + 1
                     if len(TF_1_inf_TF_3_inf.index) > 0:
-                        compiled_row.loc[0, "N3_p-val_++_--"] = pp_mm.pvalue[0]
+                        compiled_row.loc[0, "N3_p-val_++_--"] = pp_mm
                         i = i + 1
                 if len(TF_1_sup_TF_3_inf.index) > 0:
                     if len(TF_1_inf_TF_3_sup.index) > 0:
-                        compiled_row.loc[0, "N3_p-val_+-_-+"] = pm_mp.pvalue[0]
+                        compiled_row.loc[0, "N3_p-val_+-_-+"] = pm_mp
                         i = i + 1
                     if len(TF_1_inf_TF_3_inf.index) > 0:
-                        compiled_row.loc[0, "N3_p-val_+-_--"] = pm_mm.pvalue[0]
+                        compiled_row.loc[0, "N3_p-val_+-_--"] = pm_mm
                         i = i + 1
                 if len(TF_1_inf_TF_3_sup.index) > 0:
                     if len(TF_1_inf_TF_3_inf.index) > 0:
-                        compiled_row.loc[0, "N3_p-val_-+_--"] = mp_mm.pvalue[0]
+                        compiled_row.loc[0, "N3_p-val_-+_--"] = mp_mm
                         i = i + 1
         self.compiled_table = pd.concat([self.compiled_table, compiled_row])
+        self.compiled_row = compiled_row.copy(deep=True)
         self.end = time.time()
         self._time_per_tree = max(self.end - self.start, self._time_per_tree)
 
