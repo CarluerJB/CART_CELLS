@@ -14,7 +14,7 @@ cart.show_parameter()
 cart.create_out_dir()
 cart.load_GE_matrix()
 cart.load_tf_list()
-for target in cart.Y.columns[:100]:
+for target in cart.Y.columns:
     cart.generate_CART_tree(target)
     cart.eval_model(target)
     cart.save_CART_tree(target)
@@ -23,14 +23,14 @@ for target in cart.Y.columns[:100]:
 cart.save_compiled_results()
 cart.filter_cart_results()
 cart.save_filtered_results()
-# G = GRN(out_data)
-# G.create_GRN(cart.filtered_table)  # TODO
-# G.save_graph_to_table()
-# G.send_to_cytoscape()
-# matching_target_genes = G.save_target_genes(G.LIST_TF.keys(), drop_inter=True)
+G = GRN(out_data)
+G.create_GRN(cart.filtered_table)  # TODO
+G.save_graph_to_table()
+G.send_to_cytoscape()
+matching_target_genes = G.save_target_genes(G.LIST_TF.keys(), drop_inter=True)
 
-# G.run_find_enrichment(matching_target_genes)
+G.run_find_enrichment(matching_target_genes)
 
-# clust = DENDROGRAM_TW(out_data)
-# clust.load_data()
-# clust.plot_clustering_TW()
+clust = DENDROGRAM_TW(out_data)
+clust.load_data()
+clust.plot_clustering_TW()

@@ -3,3 +3,4 @@ OLD_script/
 .ipynb_checkpoints/
 goatools/
 __pycache__/
+logs/

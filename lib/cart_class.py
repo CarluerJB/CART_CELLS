@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn import tree, metrics
@@ -228,11 +229,9 @@ class CART_TREE:
         sys.stdout.write(
             "\r GENERATING CART tree for: {0} ({1}%, time left: {2} sec)".format(
                 Y_id,
+                round(self._perc_cart_tree_interface * 100 / len(self.Y.columns), 3),
                 round(
-                    self._perc_cart_tree_interface * 100 / len(self.Y.columns[:100]), 3
-                ),
-                round(
-                    len(self.Y.columns[:100]) * self._time_per_tree
+                    len(self.Y.columns) * self._time_per_tree
                     - self._perc_cart_tree_interface * self._time_per_tree,
                     3,
                 ),
@@ -315,18 +314,21 @@ class CART_TREE:
         ratio_sign = 10
         show_zero = False
         va_text_sign = "top"
-        run_UMAP = False
         cell_width = 212
         cell_height = 22
         swatch_width = 48
         xaxis_label_size = 8
         plot_method = "print"
-
+        path = Path(self.embedded_data_path)
+        if path.is_file():
+            self.run_UMAP = False
+        else:
+            self.run_UMAP = True
         if self.run_UMAP:
             model = UMAP(
                 n_components=2, min_dist=0.3, n_neighbors=30, metric="correlation"
             )
-            embedded_data = model.fit_transform(self.Y_norm)
+            embedded_data = model.fit_transform(self.Y_norm.fillna(0))
             np.save(self.embedded_data_path, embedded_data)
             self.run_UMAP = False
         else:
@@ -454,18 +456,27 @@ class CART_TREE:
         axis = axis.ravel()
         TF_1_sup = self.Y.loc[self.X[TF_1] > lim_val_1, TG]
         TF_1_inf = self.Y.loc[self.X[TF_1] <= lim_val_1, TG]
-        TF_1_sup_norm = np.nan_to_num(np.log10(TF_1_sup.values), neginf=0)
-        TF_1_inf_norm = np.nan_to_num(np.log10(TF_1_inf.values), neginf=0)
+        TF_1_sup_norm = np.nan_to_num(np.log10(TF_1_sup.values), neginf=0.0)
+        TF_1_inf_norm = np.nan_to_num(np.log10(TF_1_inf.values), neginf=0.0)
         if not show_zero:
             TF_1_sup_norm[TF_1_sup == 0] = np.nan
             TF_1_inf_norm[TF_1_inf == 0] = np.nan
+            TF_1_sup_norm = TF_1_sup_norm[~np.isnan(TF_1_sup_norm)]
+            TF_1_inf_norm = TF_1_inf_norm[~np.isnan(TF_1_inf_norm)]
+            if len(np.unique(TF_1_sup_norm)) < 3:
+                kde = False
+                histplot_binwidth = None
+            if len(np.unique(TF_1_inf_norm)) < 3:
+                kde = False
+                histplot_binwidth = None
         else:
             TF_1_sup_norm = TF_1_sup_norm + 1
             TF_1_inf_norm = TF_1_inf_norm + 1
+
         sns.histplot(
             [
-                TF_1_inf_norm if len(TF_1_inf_norm) > 0 else np.nan,
-                TF_1_sup_norm if len(TF_1_sup_norm) > 0 else np.nan,
+                TF_1_inf_norm if (len(TF_1_inf_norm) > 0) else np.nan,
+                TF_1_sup_norm if (len(TF_1_sup_norm) > 0) else np.nan,
             ][::-1],
             kde=kde,
             legend=True,
@@ -477,6 +488,8 @@ class CART_TREE:
             binwidth=histplot_binwidth,
             palette=colors_palette[:2][::-1],
         )
+        kde = True
+        histplot_binwidth = 0.2
         legend = axis[0].get_legend()
         handles = legend.legendHandles
         legend.remove()
@@ -620,13 +633,32 @@ class CART_TREE:
                 TF_1_sup_TF_2_inf_norm = TF_1_sup_TF_2_inf_norm + 1
                 TF_1_inf_TF_2_sup_norm = TF_1_inf_TF_2_sup_norm + 1
                 TF_1_inf_TF_2_inf_norm = TF_1_inf_TF_2_inf_norm + 1
-
+            if len(np.unique(TF_1_sup_TF_2_sup_norm)) < 3:
+                kde = False
+                histplot_binwidth = None
+            if len(np.unique(TF_1_sup_TF_2_inf_norm)) < 3:
+                kde = False
+                histplot_binwidth = None
+            if len(np.unique(TF_1_inf_TF_2_sup_norm)) < 3:
+                kde = False
+                histplot_binwidth = None
+            if len(np.unique(TF_1_inf_TF_2_inf_norm)) < 3:
+                kde = False
+                histplot_binwidth = None
             sns.histplot(
                 data=[
-                    TF_1_inf_TF_2_inf_norm,
-                    TF_1_inf_TF_2_sup_norm,
-                    TF_1_sup_TF_2_inf_norm,
-                    TF_1_sup_TF_2_sup_norm,
+                    TF_1_inf_TF_2_inf_norm
+                    if len(TF_1_inf_TF_2_inf_norm) > 0
+                    else np.nan,
+                    TF_1_inf_TF_2_sup_norm
+                    if len(TF_1_inf_TF_2_sup_norm) > 0
+                    else np.nan,
+                    TF_1_sup_TF_2_inf_norm
+                    if len(TF_1_sup_TF_2_inf_norm) > 0
+                    else np.nan,
+                    TF_1_sup_TF_2_sup_norm
+                    if len(TF_1_sup_TF_2_sup_norm) > 0
+                    else np.nan,
                 ][::-1],
                 kde=kde,
                 legend=True,
@@ -638,6 +670,8 @@ class CART_TREE:
                 binwidth=histplot_binwidth,
                 palette=colors_palette[::-1],
             )
+            kde = True
+            histplot_binwidth = 0.2
             legend = axis[4].get_legend()
             handles = legend.legendHandles
             legend.remove()
@@ -1003,13 +1037,32 @@ class CART_TREE:
                     TF_1_sup_TF_3_inf_norm = TF_1_sup_TF_3_inf_norm + 1
                     TF_1_inf_TF_3_sup_norm = TF_1_inf_TF_3_sup_norm + 1
                     TF_1_inf_TF_3_inf_norm = TF_1_inf_TF_3_inf_norm + 1
-
+                if len(np.unique(TF_1_sup_TF_3_sup_norm)) < 3:
+                    kde = False
+                    histplot_binwidth = None
+                if len(np.unique(TF_1_sup_TF_3_inf_norm)) < 3:
+                    kde = False
+                    histplot_binwidth = None
+                if len(np.unique(TF_1_inf_TF_3_sup_norm)) < 3:
+                    kde = False
+                    histplot_binwidth = None
+                if len(np.unique(TF_1_inf_TF_3_inf_norm)) < 3:
+                    kde = False
+                    histplot_binwidth = None
                 sns.histplot(
                     data=[
-                        TF_1_inf_TF_3_inf_norm,
-                        TF_1_inf_TF_3_sup_norm,
-                        TF_1_sup_TF_3_inf_norm,
-                        TF_1_sup_TF_3_sup_norm,
+                        TF_1_inf_TF_3_inf_norm
+                        if len(TF_1_inf_TF_3_inf_norm) > 0
+                        else np.nan,
+                        TF_1_inf_TF_3_sup_norm
+                        if len(TF_1_inf_TF_3_sup_norm) > 0
+                        else np.nan,
+                        TF_1_sup_TF_3_inf_norm
+                        if len(TF_1_sup_TF_3_inf_norm) > 0
+                        else np.nan,
+                        TF_1_sup_TF_3_sup_norm
+                        if len(TF_1_sup_TF_3_sup_norm) > 0
+                        else np.nan,
                     ][::-1],
                     kde=kde,
                     legend=True,
@@ -1022,7 +1075,8 @@ class CART_TREE:
                     palette=colors_palette[::-1],
                     label="data",
                 )
-
+                kde = True
+                histplot_binwidth = 0.2
                 label_list = []
                 handle_list = []
                 legend = axis[8].get_legend()
@@ -1555,30 +1609,45 @@ class CART_TREE:
                 # TF_1_inf_TF_2_inf['sign'] = "--"
                 # tukey_data = TF_1_sup_TF_2_sup.append([TF_1_sup_TF_2_sup, TF_1_sup_TF_2_inf, TF_1_inf_TF_2_sup, TF_1_inf_TF_2_inf])
                 # result = pairwise_tukeyhsd(tukey_datcompiled_row[cond[Y_txt]], groups=tukey_datcompiled_row['sign'])
-                pp_pm = stats.mannwhitneyu(
-                    TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
-                    TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
-                )
-                pp_mp = stats.mannwhitneyu(
-                    TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
-                )
-                pp_mm = stats.mannwhitneyu(
-                    TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
-                )
-                pm_mp = stats.mannwhitneyu(
-                    TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
-                )
-                pm_mm = stats.mannwhitneyu(
-                    TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
-                )
-                mp_mm = stats.mannwhitneyu(
-                    TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
-                    TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
-                )
+                pp_pm = 1.0
+                pp_mp = 1.0
+                pp_mm = 1.0
+                pm_mp = 1.0
+                pm_mm = 1.0
+                mp_mm = 1.0
+                if not TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]].empty:
+                    if not TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]].empty:
+                        pp_pm = stats.mannwhitneyu(
+                            TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
+                            TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
+                        )
+                    if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
+                        pp_mp = stats.mannwhitneyu(
+                            TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
+                        )
+                    if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
+                        pp_mm = stats.mannwhitneyu(
+                            TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
+                        )
+                if not TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]].empty:
+                    if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
+                        pm_mp = stats.mannwhitneyu(
+                            TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
+                        )
+                    if not TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]].empty:
+                        pm_mm = stats.mannwhitneyu(
+                            TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
+                        )
+                if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
+                    if not TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]].empty:
+                        mp_mm = stats.mannwhitneyu(
+                            TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
+                            TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
+                        )
 
                 compiled_row.loc[0, "mean_1+2+"] = TF_1_sup_TF_2_sup.mean().values
                 compiled_row.loc[0, "mean_1-2+"] = TF_1_inf_TF_2_sup.mean().values
