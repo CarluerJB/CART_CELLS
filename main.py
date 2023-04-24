@@ -8,23 +8,24 @@ out_data = sys.argv[2]
 tf_list_path = sys.argv[3]
 analysis_type = sys.argv[4]
 
-cart = CART_TREE(data, tf_list_path, out_data, analysis_type)
-cart.load_parameter_file()
-cart.show_parameter()
-cart.create_out_dir()
-cart.load_GE_matrix()
-cart.load_tf_list()
-for target in cart.Y.columns:
-    cart.generate_CART_tree(target)
-    cart.eval_model(target)
-    cart.save_CART_tree(target)
-    cart.compile_cart_results(target)
-    cart.save_cartlu_plot(target)
-cart.save_compiled_results()
-cart.filter_cart_results()
-cart.save_filtered_results()
+# cart = CART_TREE(data, tf_list_path, out_data, analysis_type)
+# cart.load_parameter_file()
+# cart.show_parameter()
+# cart.create_out_dir()
+# cart.load_GE_matrix()
+# cart.load_tf_list()
+# for target in cart.Y.columns:
+#     cart.generate_CART_tree(target)
+#     cart.eval_model(target)
+#     cart.save_CART_tree(target)
+#     cart.compile_cart_results(target)
+#     cart.save_cartlu_plot(target)
+# cart.save_compiled_results()
+# cart.filter_cart_results()
+# cart.save_filtered_results()
+
 G = GRN(out_data)
-G.create_GRN(cart.filtered_table)  # TODO
+G.create_GRN()  # TODO
 G.save_graph_to_table()
 G.send_to_cytoscape()
 matching_target_genes = G.save_target_genes(G.LIST_TF.keys(), drop_inter=True)

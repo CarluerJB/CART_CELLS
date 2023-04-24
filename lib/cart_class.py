@@ -23,7 +23,6 @@ warnings.filterwarnings("ignore")
 
 RANDOM_STATE = 42
 
-
 class CART_TREE:
     def __init__(
         self,
@@ -323,7 +322,7 @@ class CART_TREE:
         swatch_width = 48
         xaxis_label_size = 8
         plot_method = "print"
-         path = Path(self.embedded_data_path)
+        path = Path(self.embedded_data_path)
         if path.is_file():
             self.run_UMAP = False
         else:

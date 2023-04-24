@@ -137,7 +137,9 @@ class GRN:
         os.makedirs(self.save_dir_path + "network/genes_study", exist_ok=True)
         os.makedirs(self.save_dir_path + "network/association_study", exist_ok=True)
 
-    def create_GRN(self, filtered_table):
+    def create_GRN(self, filtered_table=None, table_default_name="compiled_table.csv"):
+        if filtered_table==None:
+            filtered_table = pd.read_table(self.save_dir_path + table_default_name, sep=",")
         for _, target in filtered_table.iterrows():
             self._perc_grn_interface += 100 / len(filtered_table.index)
             sys.stdout.write(
