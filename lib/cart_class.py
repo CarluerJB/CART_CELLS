@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn import tree, metrics
@@ -182,6 +181,9 @@ class CART_TREE:
     def load_tf_list(self):
         self.tf_list = pd.read_table(self.tf_list_path, header=None)[0].to_list()
 
+    def subsample_columns(self, AGI_list):
+        self.Y = self.Y[AGI_list]
+    
     def y_to_quantile(self):
         Y_copy = self.Y.copy(deep=True)
         Y_quant = np.quantile(self.Y.to_numpy().flatten(), [0.33, 0.66, 1.0]).astype(
@@ -229,7 +231,9 @@ class CART_TREE:
         sys.stdout.write(
             "\r GENERATING CART tree for: {0} ({1}%, time left: {2} sec)".format(
                 Y_id,
-                round(self._perc_cart_tree_interface * 100 / len(self.Y.columns), 3),
+                round(
+                    self._perc_cart_tree_interface * 100 / len(self.Y.columns), 3
+                ),
                 round(
                     len(self.Y.columns) * self._time_per_tree
                     - self._perc_cart_tree_interface * self._time_per_tree,
@@ -319,7 +323,7 @@ class CART_TREE:
         swatch_width = 48
         xaxis_label_size = 8
         plot_method = "print"
-        path = Path(self.embedded_data_path)
+         path = Path(self.embedded_data_path)
         if path.is_file():
             self.run_UMAP = False
         else:
@@ -456,27 +460,18 @@ class CART_TREE:
         axis = axis.ravel()
         TF_1_sup = self.Y.loc[self.X[TF_1] > lim_val_1, TG]
         TF_1_inf = self.Y.loc[self.X[TF_1] <= lim_val_1, TG]
-        TF_1_sup_norm = np.nan_to_num(np.log10(TF_1_sup.values), neginf=0.0)
-        TF_1_inf_norm = np.nan_to_num(np.log10(TF_1_inf.values), neginf=0.0)
+        TF_1_sup_norm = np.nan_to_num(np.log10(TF_1_sup.values), neginf=0)
+        TF_1_inf_norm = np.nan_to_num(np.log10(TF_1_inf.values), neginf=0)
         if not show_zero:
             TF_1_sup_norm[TF_1_sup == 0] = np.nan
             TF_1_inf_norm[TF_1_inf == 0] = np.nan
-            TF_1_sup_norm = TF_1_sup_norm[~np.isnan(TF_1_sup_norm)]
-            TF_1_inf_norm = TF_1_inf_norm[~np.isnan(TF_1_inf_norm)]
-            if len(np.unique(TF_1_sup_norm)) < 3:
-                kde = False
-                histplot_binwidth = None
-            if len(np.unique(TF_1_inf_norm)) < 3:
-                kde = False
-                histplot_binwidth = None
         else:
             TF_1_sup_norm = TF_1_sup_norm + 1
             TF_1_inf_norm = TF_1_inf_norm + 1
-
         sns.histplot(
             [
-                TF_1_inf_norm if (len(TF_1_inf_norm) > 0) else np.nan,
-                TF_1_sup_norm if (len(TF_1_sup_norm) > 0) else np.nan,
+                TF_1_inf_norm if len(TF_1_inf_norm) > 0 else np.nan,
+                TF_1_sup_norm if len(TF_1_sup_norm) > 0 else np.nan,
             ][::-1],
             kde=kde,
             legend=True,
@@ -647,7 +642,7 @@ class CART_TREE:
                 histplot_binwidth = None
             sns.histplot(
                 data=[
-                    TF_1_inf_TF_2_inf_norm
+                     TF_1_inf_TF_2_inf_norm
                     if len(TF_1_inf_TF_2_inf_norm) > 0
                     else np.nan,
                     TF_1_inf_TF_2_sup_norm
@@ -659,7 +654,7 @@ class CART_TREE:
                     TF_1_sup_TF_2_sup_norm
                     if len(TF_1_sup_TF_2_sup_norm) > 0
                     else np.nan,
-                ][::-1],
+                    ][::-1],
                 kde=kde,
                 legend=True,
                 ax=axis[4],
@@ -1620,34 +1615,34 @@ class CART_TREE:
                         pp_pm = stats.mannwhitneyu(
                             TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
                             TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
-                        )
+                        ).pvalue[0]
                     if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
                         pp_mp = stats.mannwhitneyu(
                             TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
                             TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
-                        )
+                        ).pvalue[0]
                     if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
                         pp_mm = stats.mannwhitneyu(
                             TF_1_sup_TF_2_sup[compiled_row[self.Y_txt]],
                             TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
-                        )
+                        ).pvalue[0]
                 if not TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]].empty:
                     if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
                         pm_mp = stats.mannwhitneyu(
                             TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
                             TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
-                        )
+                        ).pvalue[0]
                     if not TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]].empty:
                         pm_mm = stats.mannwhitneyu(
                             TF_1_sup_TF_2_inf[compiled_row[self.Y_txt]],
                             TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
-                        )
+                        ).pvalue[0]
                 if not TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]].empty:
                     if not TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]].empty:
                         mp_mm = stats.mannwhitneyu(
                             TF_1_inf_TF_2_sup[compiled_row[self.Y_txt]],
                             TF_1_inf_TF_2_inf[compiled_row[self.Y_txt]],
-                        )
+                        ).pvalue[0]
 
                 compiled_row.loc[0, "mean_1+2+"] = TF_1_sup_TF_2_sup.mean().values
                 compiled_row.loc[0, "mean_1-2+"] = TF_1_inf_TF_2_sup.mean().values
@@ -1656,24 +1651,24 @@ class CART_TREE:
                 i = 0
                 if len(TF_1_sup_TF_2_sup.index) > 0:
                     if len(TF_1_sup_TF_2_inf.index) > 0:
-                        compiled_row.loc[0, "N2_p-val_++_+-"] = pp_pm.pvalue[0]
+                        compiled_row.loc[0, "N2_p-val_++_+-"] = pp_pm
                         i = i + 1
                     if len(TF_1_inf_TF_2_sup.index) > 0:
-                        compiled_row.loc[0, "N2_p-val_++_-+"] = pp_mp.pvalue[0]
+                        compiled_row.loc[0, "N2_p-val_++_-+"] = pp_mp
                         i = i + 1
                     if len(TF_1_inf_TF_2_inf.index) > 0:
-                        compiled_row.loc[0, "N2_p-val_++_--"] = pp_mm.pvalue[0]
+                        compiled_row.loc[0, "N2_p-val_++_--"] = pp_mm
                         i = i + 1
                 if len(TF_1_sup_TF_2_inf.index) > 0:
                     if len(TF_1_inf_TF_2_sup.index) > 0:
-                        compiled_row.loc[0, "N2_p-val_+-_-+"] = pm_mp.pvalue[0]
+                        compiled_row.loc[0, "N2_p-val_+-_-+"] = pm_mp
                         i = i + 1
                     if len(TF_1_inf_TF_2_inf.index) > 0:
-                        compiled_row.loc[0, "N2_p-val_+-_--"] = pm_mm.pvalue[0]
+                        compiled_row.loc[0, "N2_p-val_+-_--"] = pm_mm
                         i = i + 1
                 if len(TF_1_inf_TF_2_sup.index) > 0:
                     if len(TF_1_inf_TF_2_inf.index) > 0:
-                        compiled_row.loc[0, "N2_p-val_-+_--"] = mp_mm.pvalue[0]
+                        compiled_row.loc[0, "N2_p-val_-+_--"] = mp_mm
                         i = i + 1
             if len(node_i_list) > 2:
                 # cond3 = compiled_row[compiled_row["node"]==node_i_list[2]]
@@ -1770,13 +1765,6 @@ class CART_TREE:
                     ),
                     compiled_row[self.Y_txt],
                 ]
-
-                # TF_1_sup_TF_3_sup['sign'] = "++"
-                # TF_1_sup_TF_3_inf['sign'] = "+-"
-                # TF_1_inf_TF_3_sup['sign'] = "-+"
-                # TF_1_inf_TF_3_inf['sign'] = "--"
-                # tukey_data = TF_1_sup_TF_3_sup.append([TF_1_sup_TF_3_sup, TF_1_sup_TF_3_inf, TF_1_inf_TF_3_sup, TF_1_inf_TF_3_inf])
-                # result = pairwise_tukeyhsd(tukey_datcompiled_row[cond[Y_txt]], groups=tukey_datcompiled_row['sign'])
                 pp_pm = 1.0
                 pp_mp = 1.0
                 pp_mm = 1.0
@@ -1817,31 +1805,6 @@ class CART_TREE:
                             TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
                             TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
                         ).pvalue[0]
-                # pp_pm = stats.mannwhitneyu(
-                #     TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
-                #     TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
-                # )
-                # pp_mp = stats.mannwhitneyu(
-                #     TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
-                #     TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
-                # )
-                # pp_mm = stats.mannwhitneyu(
-                #     TF_1_sup_TF_3_sup[compiled_row[self.Y_txt]],
-                #     TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
-                # )
-                # pm_mp = stats.mannwhitneyu(
-                #     TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
-                #     TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
-                # )
-                # pm_mm = stats.mannwhitneyu(
-                #     TF_1_sup_TF_3_inf[compiled_row[self.Y_txt]],
-                #     TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
-                # )
-                # mp_mm = stats.mannwhitneyu(
-                #     TF_1_inf_TF_3_sup[compiled_row[self.Y_txt]],
-                #     TF_1_inf_TF_3_inf[compiled_row[self.Y_txt]],
-                # )
-
                 compiled_row.loc[0, "mean_1+3+"] = TF_1_sup_TF_3_sup.mean().values
                 compiled_row.loc[0, "mean_1-3+"] = TF_1_inf_TF_3_sup.mean().values
                 compiled_row.loc[0, "mean_1+3-"] = TF_1_sup_TF_3_inf.mean().values
@@ -1915,25 +1878,6 @@ class CART_TREE:
                 )
             ].index
         ]
-        # self.compiled_table = self.compiled_table.loc[
-        #     self.compiled_table[
-        #         (
-        #             (
-        #                 (self.compiled_table["gini_score_0"] <= self.THRES_CRITERION)
-        #                 & (self.compiled_table["gini_score_1"] <= self.THRES_CRITERION)
-        #                 & (self.compiled_table["gini_score_2"] <= self.THRES_CRITERION)
-        #             )
-        #             & (self.compiled_table["model_score"] >= self.THRES_MODEL)
-        #             & (self.compiled_table["ratio"] <= self.THRES_ZERO_TE_TR)
-        #         )
-        #         & (
-        #             (self.compiled_table["p-val_1"] >= self.THRES_PVAL)
-        #             | (self.compiled_table["N2 anova p-val_1-2"] >= self.THRES_PVAL)
-        #             | (self.compiled_table["N3 anova p-val_1-2"] >= self.THRES_PVAL)
-        #         )
-        #     ].index
-        # ]
-
         # data sorting
         if len(sort_by) > 0:
             self.filtered_table.sort_values(

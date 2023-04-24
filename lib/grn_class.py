@@ -1,6 +1,5 @@
 from codecs import ignore_errors
 from tkinter.tix import COLUMN
-from importlib_metadata import itertools
 import networkx as nx
 import py4cytoscape as py4
 import pandas as pd
