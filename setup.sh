@@ -43,6 +43,8 @@ do
         "Accept")
             svn export https://github.com/OceaneCsn/AraNetBench.git/trunk/R/evaluateNetwork.R
             svn export https://github.com/OceaneCsn/AraNetBench.git/trunk/data/validated_edges.rda
+            mv evaluateNetwork.R NetworkEvaluation/
+            mv validated_edges.rda NetworkEvaluation/
             break
             ;;
         "Decline")

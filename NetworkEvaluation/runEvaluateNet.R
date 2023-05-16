@@ -1,4 +1,4 @@
-source("evaluateNetwork.R")
+source("NetworkEvaluation/evaluateNetwork.R")
 
 args = commandArgs(trailingOnly=TRUE)
 models_info_path = args[1]
@@ -7,7 +7,7 @@ model_edge_filename = args[3]
 if(length(args)>3){
     validated_edges_path = args[4]
 }else{
-    validated_edges_path = "validated_edges.rda"
+    validated_edges_path = "NetworkEvaluation/validated_edges.rda"
 }
 
 
@@ -22,7 +22,7 @@ for(i in 1:nrow(model_eval)) {
     row <- model_eval[i,]
     if(row$nb_candidate>0){
         net = read.table(paste0(row$datapath, "/", model_edge_filename), sep=",", header=TRUE)    
-        load(file="validated_edges.rda")
+        load(file=validated_edges_path)
         results = evaluate_network(net, subset_validated_edges=validated_edges)
         model_eval[i,"tp"] = results$tp
         model_eval[i,"fp"] = results$fp
