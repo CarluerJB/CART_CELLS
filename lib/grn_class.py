@@ -8,6 +8,8 @@ from unittest.mock import patch
 import sys
 from lib.utils_class import NoStdStreams
 import time
+import numpy as np
+from pathlib import Path
 
 RANDOM_STATE = 42
 
@@ -18,11 +20,28 @@ class GRN:
         self.node_size = []
         self.node_color = []
         self.node_style = []
+        self.node_table_filename = "node_table.csv"
+        self.edge_table_filename = "edge_table.csv"
+        self.edge_simplified_table_filename = "edge_simplified_table.csv"
+        self.resume_table_filename = "resume_table.csv"
+        self.tf_target_filename = "resume_TF_target.txt"
+
         self.save_dir_path = out_data
-        self.path_node_table = self.save_dir_path + "network/node_table.csv"
-        self.path_edge_table = self.save_dir_path + "network/edge_table.csv"
-        self.path_resume_table = self.save_dir_path + "network/resume_table.csv"
-        self.path_resume_target = self.save_dir_path + "network/resume_TF_target.txt"
+        self.path_node_table = (
+            self.save_dir_path + "network/" + self.node_table_filename
+        )
+        self.path_edge_table = (
+            self.save_dir_path + "network/" + self.edge_table_filename
+        )
+        self.path_edge_simplified_table = (
+            self.save_dir_path + "network/" + self.edge_simplified_table_filename
+        )
+        self.path_resume_table = (
+            self.save_dir_path + "network/" + self.resume_table_filename
+        )
+        self.path_resume_target = (
+            self.save_dir_path + "network/" + self.tf_target_filename
+        )
         self.path_src_target_dir = self.save_dir_path + "network/genes_study/"
         self.parameter_file_path = "PARAMETERS/PARAM_GRN_DEFAULT.txt"
         self.TF_SHAPE = "ELLIPSE"
@@ -67,10 +86,10 @@ class GRN:
             "WRKY18": "AT4G31800",
             "WRKY54": "AT2G40750",
         }
-        self._perc_grn_interface = 0.0
-        self._perc_GO_interface = 0.0
-        self._time_per_GO = 0.1
-        self.create_out_dir()
+        self.create_out_dir("network")
+        self.create_out_dir("network/evaluateNet")
+        self.create_out_dir("network/genes_study")
+        self.create_out_dir("network/association_study")
         self.show_parameter()
 
     def load_parameter_file(self):
@@ -111,6 +130,12 @@ class GRN:
                     self.UNDIR_EDGE_COLOR = param[:-1]
                 if target_param == "THRES_CRITERION":
                     self.THRES_CRITERION = float(param)
+                if target_param == "PERC_ZERO_TOT":
+                    self.PERC_ZERO_TOT = float(param)
+                if target_param == "PVAL":
+                    self.PVAL = float(param)
+                if target_param == "MODEL_SCORE":
+                    self.MODEL_SCORE = float(param)
 
     def show_parameter(self):
         print("\n\tPARAMETERS : ")
@@ -132,14 +157,111 @@ class GRN:
         print("\t\tTHRES_CRITERION : ", self.THRES_CRITERION)
         print("\n")
 
-    def create_out_dir(self):
-        os.makedirs(self.save_dir_path + "network", exist_ok=True)
-        os.makedirs(self.save_dir_path + "network/genes_study", exist_ok=True)
-        os.makedirs(self.save_dir_path + "network/association_study", exist_ok=True)
+    def create_out_dir(self, dir):
+        path = Path(self.save_dir_path + dir)
+        path.mkdir(parents=True, exist_ok=True)
 
-    def create_GRN(self, filtered_table=None, table_default_name="compiled_table.csv"):
-        if filtered_table==None:
-            filtered_table = pd.read_table(self.save_dir_path + table_default_name, sep=",")
+    def filter_table(
+        self,
+        filtered_table,
+        pval=None,
+        perc_zero_tot=None,
+        thres_criterion=None,
+        model_score=None,
+    ):
+        if pval == None:
+            pval = self.PVAL
+        if perc_zero_tot == None:
+            perc_zero_tot = self.PERC_ZERO_TOT
+        if thres_criterion == None:
+            thres_criterion = self.THRES_CRITERION
+        if model_score == None:
+            model_score = self.MODEL_SCORE
+        filtered_table["p-val_1"] = -np.log10(filtered_table["p-val_1"])
+        filtered_table["N2_p-val_++_+-"] = -np.log10(filtered_table["N2_p-val_++_+-"])
+        filtered_table["N2_p-val_++_-+"] = -np.log10(filtered_table["N2_p-val_++_-+"])
+        filtered_table["N2_p-val_++_--"] = -np.log10(filtered_table["N2_p-val_++_--"])
+        filtered_table["N2_p-val_+-_-+"] = -np.log10(filtered_table["N2_p-val_+-_-+"])
+        filtered_table["N2_p-val_+-_--"] = -np.log10(filtered_table["N2_p-val_+-_--"])
+        filtered_table["N2_p-val_-+_--"] = -np.log10(filtered_table["N2_p-val_-+_--"])
+        filtered_table["N3_p-val_++_+-"] = -np.log10(filtered_table["N3_p-val_++_+-"])
+        filtered_table["N3_p-val_++_-+"] = -np.log10(filtered_table["N3_p-val_++_-+"])
+        filtered_table["N3_p-val_++_--"] = -np.log10(filtered_table["N3_p-val_++_--"])
+        filtered_table["N3_p-val_+-_-+"] = -np.log10(filtered_table["N3_p-val_+-_-+"])
+        filtered_table["N3_p-val_+-_--"] = -np.log10(filtered_table["N3_p-val_+-_--"])
+        filtered_table["N3_p-val_-+_--"] = -np.log10(filtered_table["N3_p-val_-+_--"])
+        filtered_table = filtered_table[
+            (filtered_table["gini_score_0"] < thres_criterion)
+            & (filtered_table["model_score"] > model_score)
+            & (filtered_table["perc_zero_tot"] < perc_zero_tot)
+            & (
+                (filtered_table["p-val_1"] > pval)
+                | (filtered_table["N2_p-val_++_+-"] > pval)
+                | (filtered_table["N2_p-val_++_-+"] > pval)
+                | (filtered_table["N2_p-val_++_--"] > pval)
+                | (filtered_table["N2_p-val_+-_-+"] > pval)
+                | (filtered_table["N2_p-val_+-_--"] > pval)
+                | (filtered_table["N2_p-val_-+_--"] > pval)
+                | (filtered_table["N3_p-val_++_+-"] > pval)
+                | (filtered_table["N3_p-val_++_-+"] > pval)
+                | (filtered_table["N3_p-val_++_--"] > pval)
+                | (filtered_table["N3_p-val_+-_-+"] > pval)
+                | (filtered_table["N3_p-val_+-_--"] > pval)
+                | (filtered_table["N3_p-val_-+_--"] > pval)
+            )
+        ]
+        return filtered_table
+
+    def init_candidate_info_file(self, save_path):
+        with open(save_path + "nb_candidate_info.txt", "w") as file:
+            file.write(
+                "pval,perc_zero_tot,model_score,thres_criterion,nb_candidate,datapath\n"
+            )
+
+    def save_candidates_info(
+        self,
+        save_path,
+        pval=None,
+        perc_zero_tot=None,
+        model_score=None,
+        thres_criterion=None,
+        nb_candidate=0,
+        datapath=None,
+    ):
+        with open(save_path + "nb_candidate_info.txt", "a") as file:
+            file.write(
+                pval
+                + ","
+                + perc_zero_tot
+                + ","
+                + model_score
+                + ","
+                + thres_criterion
+                + ","
+                + nb_candidate
+                + ","
+                + datapath
+                + "\n"
+            )
+
+    def create_GRN(
+        self,
+        filtered_table=None,
+        table_default_name="compiled_table.csv",
+        pval=None,
+        perc_zero_tot=None,
+        model_score=None,
+        thres_criterion=None,
+    ):
+        if filtered_table == None:
+            filtered_table = pd.read_table(
+                self.save_dir_path + table_default_name, sep=","
+            )
+            filtered_table = self.filter_table(
+                filtered_table, pval, perc_zero_tot, thres_criterion, model_score
+            )
+            print("There is ", len(filtered_table.index), " candidate.")
+        self._perc_grn_interface = 0.0
         for _, target in filtered_table.iterrows():
             self._perc_grn_interface += 100 / len(filtered_table.index)
             sys.stdout.write(
@@ -156,23 +278,28 @@ class GRN:
 
             # INTER 1
             if target["gini_score_1"] != None:
-                if target["gini_score_1"] > self.THRES_CRITERION:
+                if target["gini_score_1"] < self.THRES_CRITERION:
                     TF1_TF2_inter_node = self.create_node(
                         [target["TF1"], target["TF2"]], "TF_INTER"
                     )
                     self.create_edge(
-                        target["AGI"], TF1_TF2_inter_node, score=target["gini_score_1"]
+                        target["AGI"],
+                        TF1_TF2_inter_node,
+                        score=target["gini_score_1"],
                     )
             # INTER 2
             if target["gini_score_2"] != None:
-                if target["gini_score_2"] > self.THRES_CRITERION:
+                if target["gini_score_2"] < self.THRES_CRITERION:
                     TF1_TF3_inter_node = self.create_node(
                         [target["TF1"], target["TF3"]], "TF_INTER"
                     )
                     self.create_edge(
-                        target["AGI"], TF1_TF3_inter_node, score=target["gini_score_2"]
+                        target["AGI"],
+                        TF1_TF3_inter_node,
+                        score=target["gini_score_2"],
                     )
         print("\n Done generating GRN\n")
+        return len(filtered_table.index)
 
     def create_node(
         self, node_name, node_type, node_color=None, node_style=None, node_size=None
@@ -184,43 +311,82 @@ class GRN:
                 )
         if len(node_name) < 2:
             node_name = node_name[0]
-            if node_name not in list(self.G.nodes):
-                self.G.add_node(node_name)
-                self.node_color.append(
-                    self.TF_NODE_COLOR
-                    if node_type == "TF"
-                    else self.GENE_NODE_COLOR
-                    if node_type == "GENE"
-                    else self.TF_INTER_NODE_COLOR
-                    if node_type == "TF_INTER"
-                    else node_color
-                )
-                self.node_style.append(
-                    self.TF_SHAPE
-                    if node_type == "TF"
-                    else self.GENE_SHAPE
-                    if node_type == "GENE"
-                    else self.TF_INTER_SHAPE
-                    if node_type == "TF_INTER"
-                    else node_style
-                )
-                self.node_size.append(
-                    self.TF_NODE_SIZE
-                    if node_type == "TF"
-                    else self.GENE_NODE_SIZE
-                    if node_type == "GENE"
-                    else self.TF_INTER_NODE_SIZE
-                    if node_type == "TF_INTER"
-                    else node_size
-                )
-            return node_name
+            if node_name not in list(self.G.nodes):  # node don't exist
+                if node_type == "TF_INTER":  # node is an inter
+                    if node_name.split("-")[1] + "-" + node_name.split("-")[
+                        0
+                    ] not in list(
+                        self.G.nodes
+                    ):  # reverted node don't exist
+                        self.G.add_node(node_name)
+                        self.node_color.append(
+                            self.TF_NODE_COLOR
+                            if node_type == "TF"
+                            else self.GENE_NODE_COLOR
+                            if node_type == "GENE"
+                            else self.TF_INTER_NODE_COLOR
+                            if node_type == "TF_INTER"
+                            else node_color
+                        )
+                        self.node_style.append(
+                            self.TF_SHAPE
+                            if node_type == "TF"
+                            else self.GENE_SHAPE
+                            if node_type == "GENE"
+                            else self.TF_INTER_SHAPE
+                            if node_type == "TF_INTER"
+                            else node_style
+                        )
+                        self.node_size.append(
+                            self.TF_NODE_SIZE
+                            if node_type == "TF"
+                            else self.GENE_NODE_SIZE
+                            if node_type == "GENE"
+                            else self.TF_INTER_NODE_SIZE
+                            if node_type == "TF_INTER"
+                            else node_size
+                        )
+                        return node_name
+                    else:
+                        return node_name.split("-")[1] + "-" + node_name.split("-")[0]
+                else:
+                    self.G.add_node(node_name)
+                    self.node_color.append(
+                        self.TF_NODE_COLOR
+                        if node_type == "TF"
+                        else self.GENE_NODE_COLOR
+                        if node_type == "GENE"
+                        else self.TF_INTER_NODE_COLOR
+                        if node_type == "TF_INTER"
+                        else node_color
+                    )
+                    self.node_style.append(
+                        self.TF_SHAPE
+                        if node_type == "TF"
+                        else self.GENE_SHAPE
+                        if node_type == "GENE"
+                        else self.TF_INTER_SHAPE
+                        if node_type == "TF_INTER"
+                        else node_style
+                    )
+                    self.node_size.append(
+                        self.TF_NODE_SIZE
+                        if node_type == "TF"
+                        else self.GENE_NODE_SIZE
+                        if node_type == "GENE"
+                        else self.TF_INTER_NODE_SIZE
+                        if node_type == "TF_INTER"
+                        else node_size
+                    )
+            else:
+                return node_name
         else:
             for node in node_name:
                 self.create_node([node], "TF")
             node_inter = self.create_node(["-".join(node_name)], "TF_INTER")
             for node in node_name:
                 self.create_edge(node, node_inter, None)
-            return "-".join(node_name)
+            return node_inter
 
     def create_edge(
         self,
@@ -274,19 +440,81 @@ class GRN:
         node_degree.drop(["index", "target"], inplace=True, axis=1)
         return df, full_node, node_degree
 
-    def send_to_cytoscape(self):
+    def send_to_cytoscape(self, title="GRN_default", path_save_session="default.cys"):
         df, full_node, _ = self.to_tables()
         dir(py4)
         py4.cytoscape_ping()
-        py4.networks.create_network_from_data_frames(full_node, df, title="GRN_default")
+        py4.networks.create_network_from_data_frames(full_node, df, title=title)
+        py4.set_node_color_mapping(
+            table_column="node_color",
+            table_column_values=["red", "blue", "green"],
+            colors=["#F05B0B", "#899AEE", "#6BF367"],
+            mapping_type="discrete",
+            network=title,
+        )
+        py4.save_session(path_save_session)
+        py4.delete_network(title)
 
-    def save_graph_to_table(self, with_resume=True):
+    def save_graph_to_table(
+        self,
+        with_resume=True,
+        save_path=None,
+    ):
+        if save_path == None:
+            path_edge_table = self.path_edge_table
+            path_edge_simplified_table = self.path_edge_simplified_table
+            path_node_table = self.path_node_table
+            path_resume_table = self.path_resume_table
+        else:
+            path_edge_table = save_path + "/" + self.edge_table_filename
+            path_edge_simplified_table = (
+                save_path + "/" + self.edge_simplified_table_filename
+            )
+            path_node_table = save_path + "/" + self.node_table_filename
+            path_resume_table = save_path + "/" + self.resume_table_filename
+
         df, full_node, node_degree = self.to_tables()
-        df.to_csv(self.path_edge_table, sep=",", header=True, index=False)
-        full_node.to_csv(self.path_node_table, sep=",", header=True, index=False)
+        df.to_csv(path_edge_table, sep=",", header=True, index=False)
+        full_node.to_csv(path_node_table, sep=",", header=True, index=False)
+        df.drop(
+            columns=["weight", "line_type", "edge_color", "interaction"], inplace=True
+        )
+
+        # Prepare data for from-to format (adapted for Oceane Cassan net-evaluation)
+        df.columns = ["from", "to"]
+        sub_df = df[df["to"].str.contains("-")]
+        df.drop(df[df["to"].str.contains("-")].index, axis=0, inplace=True)
+        df["_to_comp"] = df["from"] + "-" + df["to"]
+        for fr, to in zip(sub_df["from"], sub_df["to"]):
+            if "-" in fr:
+                fr = fr.split("-")
+            else:
+                fr = [fr]
+            if "-" in to:
+                to = to.split("-")
+            else:
+                to = [to]
+            for elem1 in fr:
+                for elem2 in to:
+                    if (elem1 + "-" + elem2) in df["_to_comp"].values:
+                        continue
+                    if (elem2 + "-" + elem1) in df["_to_comp"].values:
+                        continue
+                    if elem1 == elem2:
+                        continue
+                    new_row = {
+                        "from": elem1,
+                        "to": elem2,
+                        "_to_comp": elem1 + "-" + elem2,
+                    }
+                    df = df.append(new_row, ignore_index=True)
+        df.drop(columns=["_to_comp"], inplace=True)
+        df.replace(self.LIST_TF, inplace=True)
+
+        df.to_csv(path_edge_simplified_table, sep=",", header=True, index=False)
         if with_resume:
             node_degree.to_csv(
-                self.path_resume_table,
+                path_resume_table,
                 index=True,
                 header=["degree"],
                 index_label="source",
@@ -326,66 +554,21 @@ class GRN:
 
         return matching_target
 
-    def evaluate_GRN(self, net, input_genes, input_tfs, validation, validated_edge):
-        pass
-        # if subset_validated_edges is not None:
-        #     validated_edges = subset_validated_edges
+    def send_for_evaluation(self, save_path):
+        out_save_path = save_path + "nb_candidate_info_score.txt"
+        save_path = save_path + "nb_candidate_info.txt"
+        import subprocess
 
-        # if not all(v in ["CHIPSeq", "DAPSeq", "Litterature", "TARGET"] for v in validation):
-        #     raise ValueError("The validation type must be a vector of one or more of the following values: CHIPSeq, DAPSeq, Litterature, TARGET")
-
-        # if not ("from" in net.columns and "to" in net.columns):
-        #     raise ValueError("The network dataframe should have two columns named 'from' and 'to'")
-
-        # from_DIANE = False
-
-        # if any(net["from"].str.contains('mean_')):
-        #     from_DIANE = True
-        #     grouped_net = net
-        #     net = flatten_edges(net)
-
-        # matched = sum(pd.Series(net["from"].tolist() + net["to"].tolist()).str.contains("^AT[[:alnum:]]G[[:digit:]]{5}"))
-        # if matched != 2 * len(net.index):
-        #     if matched > 0:
-        #         raise ValueError("Some of the gene IDs do not match the expected regex for Arabidopsis AGIs")
-        #     else:
-        #         raise ValueError("None of the gene IDs match the expected regex Arabidopsis AGIs")
-
-        # if input_genes is None:
-        #     input_genes = pd.Series(net["to"].unique())
-
-        # if any(pd.Series(input_genes).str.contains("mean_")):
-        #     distincts = [x for x in input_genes if not re.search(r'mean_', x)]
-        #     groups = set(input_genes) - set(distincts)
-        #     for group in groups:
-        #         distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
-        #     input_genes = distincts
-
-        # if input_tfs is None:
-        #     input_tfs = pd.Series(net["from"].unique())
-
-        # if any(pd.Series(input_tfs).str.contains("mean_")):
-        #     distincts = [x for x in input_tfs if not re.search(r'mean_', x)]
-        #     groups = set(input_tfs) - set(distincts)
-        #     for group in groups:
-        #         distincts.extend(str.split(stringr::str_split_fixed(group, "_", 2)[, 2], '-')[0])
-        #     input_tfs = distincts
-
-        # validated_edges_specific = subset_validated_edges[subset_validated_edges["type"].isin(validation)]
-        # validated_edges_specific_unique = validated_edges_specific.groupby(["from", "to"]).agg({'type': lambda x: '+'.join(x)}).reset_index()
-        # validated_edges_specific_unique = validated_edges_specific_unique[(validated_edges_specific_unique["from"].isin(input_tfs)) & (validated_edges_specific_unique["to"].isin(input_genes))]
-
-        # val = pd.merge(net, validated_edges_specific_unique, on=["from", "to"])
-
-        # studied_tfs = pd.Series(validated_edges_specific_unique["from"].unique())
-        # n_studied_interactions = len(net[net["from"].isin(studied_tfs)].index)
-
-        # if len(studied_tfs) == 0:
-        #     print("No regulator present in your network was studied in the database \n")
-        #     return {"tp": None, "fp": None, "tpr": None, "fpr": None, "fn": None, "recall": None}
-
-        # if len(val.index) == 0:
-        #     print("No predicted edge was found in the validation databse...Coffee to cheer you up? \n")
+        res = subprocess.call(
+            "Rscript runEvaluateNet.R "
+            + save_path
+            + " "
+            + out_save_path
+            + " "
+            + self.edge_simplified_table_filename,
+            shell=True,
+        )
+        print(res)
 
     def run_find_enrichment(self, sources, pval=0.05):
         # Copyright (c) 2010-2018, Haibao Tang
