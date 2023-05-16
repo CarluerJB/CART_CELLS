@@ -560,7 +560,7 @@ class GRN:
         import subprocess
 
         res = subprocess.call(
-            "Rscript runEvaluateNet.R "
+            "Rscript NetworkEvaluation/runEvaluateNet.R "
             + save_path
             + " "
             + out_save_path
