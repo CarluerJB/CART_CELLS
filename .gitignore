@@ -5,3 +5,5 @@ goatools/
 __pycache__/
 logs/
 go-basic.obo
+evaluateNetwork.R
+validated_edges.rda

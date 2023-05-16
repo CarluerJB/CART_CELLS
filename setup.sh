@@ -35,14 +35,14 @@ do
     esac
 done
 
-PS3='In order to execute the full pipeline some python package are needed, install in a conda environment ?: '
+PS3='In order to estimate the most important metrics of the model, you must download the AraNetBench evaluation method from the github of Oceane Cassan: '
 options=("Accept" "Decline")
 select opt in "${options[@]}"
 do
     case $opt in
         "Accept")
-            conda env create -f environment.yml
-            conda activate GRN_cytoscape
+            svn export https://github.com/OceaneCsn/AraNetBench.git/trunk/R/evaluateNetwork.R
+            svn export https://github.com/OceaneCsn/AraNetBench.git/trunk/data/validated_edges.rda
             break
             ;;
         "Decline")
@@ -51,4 +51,20 @@ do
         *) echo "invalid option $REPLY";;
     esac
 done
-conda env create -f environment.yml
+
+PS3='In order to execute the full pipeline some python package are needed, install in a conda environment ?: '
+options=("Accept" "Decline")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Accept")
+            conda env create -f environment.yml
+            conda activate CART_CELLS
+            break
+            ;;
+        "Decline")
+            break
+            ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
