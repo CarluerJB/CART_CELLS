@@ -1,0 +1,21 @@
+# Type of Go term to clusterise on, choice is between
+# BP (Biological process)
+# MF
+# CC
+GO_TERM_FMT BP
+
+# Pval to use choice is between 
+# p_uncorrected, p_bonferroni, p_sidak, p_holm, p_fdr_bh
+PVAL p_uncorrected
+
+# Allow to filter point based on their PVALUE
+PVAL_THRES 0.01
+
+# Number of point by tick on X axis (allow to avoid text overlap)
+X_POS_PER_PT 1
+
+# Number of point by tick on Y axis (allow to avoid text overlap)
+Y_POS_PER_PT 1
+
+# Usefull to create HD images
+DPI 960

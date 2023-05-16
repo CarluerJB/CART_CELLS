@@ -1,0 +1,45 @@
+# GRN VISUAL PARAMETERS
+# node shape parameters
+TF_SHAPE ELLIPSE
+GENE_SHAPE ROUND_RECTANGLE
+TF_INTER_SHAPE TRIANGLE
+
+# edge type parameter
+TF_INTER_LINE_TYPE DASHED
+DEFAULT_LINE_TYPE FULL
+
+# node size parameters
+TF_NODE_SIZE 10
+GENE_NODE_SIZE 10
+TF_INTER_NODE_SIZE 10
+
+# node color parameters
+TF_NODE_COLOR red
+GENE_NODE_COLOR blue
+TF_INTER_NODE_COLOR green
+
+# edge size parameters
+DIR_EDGE_SIZE 10
+UNDIR_EDGE_SIZE 10
+
+# edge color parameters
+DIR_EDGE_COLOR red
+UNDIR_EDGE_COLOR blue
+
+# THRES_CRITERION is the minimum value for the 
+# criterion in filtration step
+THRES_CRITERION 1.0
+
+# PERC_ZERO_TOT is the total ratio of 0 allowed
+# for each genes, this is used in filtration step
+PERC_ZERO_TOT 0.5
+
+# PVAL is the minimum -log10(pval) allowed
+# for each edge between a TF (or TF interaction)
+# and a target genes 
+PVAL 20
+
+# MODEL_SCORE is the maximum model_score allowed
+# for each edge between a TF (or TF interaction)
+# and a target genes (case of accuracy metric)
+MODEL_SCORE 0.0

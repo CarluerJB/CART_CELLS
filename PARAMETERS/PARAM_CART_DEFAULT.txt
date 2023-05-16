@@ -1,0 +1,34 @@
+# CART TREE PARAMETERS
+# CLASS_TRANSFO allow to turn a continuous variable 
+# into a discrete one
+CLASS_TRANSFO False
+
+# MIN_SAMPLE_CUT allow to indicate minimum shrinking 
+# ratio allowed for terminal leaf of the CART tree 
+MIN_SAMPLE_CUT 0.10
+
+# CRITERION allowed criterion are [“gini”, “entropy”, 
+# “log_loss”]
+CRITERION gini
+
+# CLASS_WEIGHT allow to penalize overpresent class
+# choice are : "None" or "balanced"
+CLASS_WEIGHT None
+
+## FILTRATION PARAMETERS
+
+# THRES_MODEL is the minimum accuracy allowed in 
+# filtration step
+THRES_MODEL 0.5
+
+# THRES_CRITERION is the minimum value for the 
+# criterion in filtration step
+THRES_CRITERION 1.0
+
+# THRES_ZERO_TE_TR is maximum ratio of zero between
+# train and test set
+THRES_ZERO_TE_TR 0.8
+
+# THRES_PVAL is the minimum pval allow in the filtration
+# step (after apply log10)
+THRES_PVAL 2.0
