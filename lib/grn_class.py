@@ -1,3 +1,4 @@
+from cmath import log
 from codecs import ignore_errors
 from tkinter.tix import COLUMN
 import networkx as nx
@@ -10,6 +11,8 @@ from lib.utils_class import NoStdStreams
 import time
 import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 RANDOM_STATE = 42
 
@@ -20,13 +23,21 @@ class GRN:
         self.node_size = []
         self.node_color = []
         self.node_style = []
-        self.node_table_filename = "node_table.csv"
-        self.edge_table_filename = "edge_table.csv"
-        self.edge_simplified_table_filename = "edge_simplified_table.csv"
-        self.resume_table_filename = "resume_table.csv"
-        self.tf_target_filename = "resume_TF_target.txt"
+        # self.node_table_filename = "node_table.csv"
+        # self.edge_table_filename = "edge_table.csv"
+        # self.edge_simplified_table_filename = "edge_simplified_table.csv"
+        # self.resume_table_filename = "resume_table.csv"
+        # self.tf_target_filename = "resume_TF_target.txt"
+        # self.tf_all_list_filename = "list_all_tf.txt"
+        # self.gene_all_list_filename = "list_all_gene.txt"
+        # self.eval_score_filename = "nb_candidate_info_score.txt"
+        # self.eval_filename = "nb_candidate_info.txt"
+        # self.eval_score_plot_filename = "nb_candidate_info_score.txt"
+        # self.eval_plot_filename = "param_eval.png"
 
         self.save_dir_path = out_data
+        self.parameter_file_path = "PARAMETERS/PARAM_GRN_DEFAULT.txt"
+        self.load_parameter_file()
         self.path_node_table = (
             self.save_dir_path + "network/" + self.node_table_filename
         )
@@ -43,25 +54,24 @@ class GRN:
             self.save_dir_path + "network/" + self.tf_target_filename
         )
         self.path_src_target_dir = self.save_dir_path + "network/genes_study/"
-        self.parameter_file_path = "PARAMETERS/PARAM_GRN_DEFAULT.txt"
-        self.TF_SHAPE = "ELLIPSE"
-        self.GENE_SHAPE = "ROUND_RECTANGLE"
-        self.TF_INTER_SHAPE = "TRIANGLE"
-        self.TF_INTER_LINE_TYPE = "DASHED"
-        self.DEFAULT_LINE_TYPE = "FULL"
-        self.TF_NODE_SIZE = 10
-        self.GENE_NODE_SIZE = 10
-        self.TF_INTER_NODE_SIZE = 10
-        self.TF_NODE_COLOR = "red"
-        self.GENE_NODE_COLOR = "blue"
-        self.TF_INTER_NODE_COLOR = "green"
-        self.DIR_EDGE_SIZE = 10
-        self.UNDIR_EDGE_SIZE = 10
-        self.DIR_EDGE_COLOR = "red"
-        self.UNDIR_EDGE_COLOR = "blue"
-        self.THRES_CRITERION = 1.0
-        self.load_parameter_file()
-        self.LIST_TF = {
+
+        # self.TF_SHAPE = "ELLIPSE"
+        # self.GENE_SHAPE = "ROUND_RECTANGLE"
+        # self.TF_INTER_SHAPE = "TRIANGLE"
+        # self.TF_INTER_LINE_TYPE = "DASHED"
+        # self.DEFAULT_LINE_TYPE = "FULL"
+        # self.TF_NODE_SIZE = 10
+        # self.GENE_NODE_SIZE = 10
+        # self.TF_INTER_NODE_SIZE = 10
+        # self.TF_NODE_COLOR = "red"
+        # self.GENE_NODE_COLOR = "blue"
+        # self.TF_INTER_NODE_COLOR = "green"
+        # self.DIR_EDGE_SIZE = 10
+        # self.UNDIR_EDGE_SIZE = 10
+        # self.DIR_EDGE_COLOR = "red"
+        # self.UNDIR_EDGE_COLOR = "blue"
+        # self.THRES_CRITERION = 1.0
+        self.LIST_TF = {  # TEMPORARY FIND A SMART WAY TO REMOVE IT FROM CODE !
             "BEE2": "AT4G36540",
             "CDF1": "AT5G62430",
             "bZIP3": "AT5G15830",
@@ -91,6 +101,13 @@ class GRN:
         self.create_out_dir("network/genes_study")
         self.create_out_dir("network/association_study")
         self.show_parameter()
+
+    def delete_GRN(self):
+        self.G = None
+        self.G = nx.Graph()
+        self.node_size = []
+        self.node_color = []
+        self.node_style = []
 
     def load_parameter_file(self):
         with open(self.parameter_file_path, "r") as parameter_file:
@@ -136,6 +153,30 @@ class GRN:
                     self.PVAL = float(param)
                 if target_param == "MODEL_SCORE":
                     self.MODEL_SCORE = float(param)
+                if target_param == "node_table_filename":
+                    self.node_table_filename = param[:-1]
+                if target_param == "edge_table_filename":
+                    self.edge_table_filename = param[:-1]
+                if target_param == "edge_simplified_table_filename":
+                    self.edge_simplified_table_filename = param[:-1]
+                if target_param == "resume_table_filename":
+                    self.resume_table_filename = param[:-1]
+                if target_param == "tf_target_filename":
+                    self.tf_target_filename = param[:-1]
+                if target_param == "tf_all_list_filename":
+                    self.tf_all_list_filename = param[:-1]
+                if target_param == "gene_all_list_filename":
+                    self.gene_all_list_filename = param[:-1]
+                if target_param == "eval_score_filename":
+                    self.eval_score_filename = param[:-1]
+                if target_param == "eval_filename":
+                    self.eval_filename = param[:-1]
+                if target_param == "eval_score_plot_filename":
+                    self.eval_score_plot_filename = param[:-1]
+                if target_param == "eval_plot_filename":
+                    self.eval_plot_filename = param[:-1]
+                if target_param == "found_edges_info_out_path":
+                    self.found_edges_info_out_path = param[:-1]
 
     def show_parameter(self):
         print("\n\tPARAMETERS : ")
@@ -155,6 +196,19 @@ class GRN:
         print("\t\tDIR_EDGE_COLOR : ", self.DIR_EDGE_COLOR)
         print("\t\tUNDIR_EDGE_COLOR : ", self.UNDIR_EDGE_COLOR)
         print("\t\tTHRES_CRITERION : ", self.THRES_CRITERION)
+        print("\t\tnode_table_filename : ", self.node_table_filename)
+        print("\t\tedge_table_filename : ", self.edge_table_filename)
+        print(
+            "\t\tedge_simplified_table_filename : ", self.edge_simplified_table_filename
+        )
+        print("\t\tresume_table_filename : ", self.resume_table_filename)
+        print("\t\ttf_target_filename : ", self.tf_target_filename)
+        print("\t\ttf_all_list_filename : ", self.tf_all_list_filename)
+        print("\t\tgene_all_list_filename : ", self.gene_all_list_filename)
+        print("\t\teval_score_filename : ", self.eval_score_filename)
+        print("\t\teval_filename : ", self.eval_filename)
+        print("\t\teval_score_plot_filename : ", self.eval_score_plot_filename)
+        print("\t\teval_plot_filename : ", self.eval_plot_filename)
         print("\n")
 
     def create_out_dir(self, dir):
@@ -212,11 +266,262 @@ class GRN:
         ]
         return filtered_table
 
-    def init_candidate_info_file(self, save_path):
-        with open(save_path + "nb_candidate_info.txt", "w") as file:
+    def init_candidate_info_file(self, save_path=None):
+        if save_path == None:
+            save_path = self.save_dir_path + "network/evaluateNet/"
+        with open(save_path + self.eval_filename, "w") as file:
             file.write(
                 "pval,perc_zero_tot,model_score,thres_criterion,nb_candidate,datapath\n"
             )
+
+    def analyse_eval_PCA(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        evaluateNetScore.dropna(axis=0, inplace=True)
+        evaluateNetScore.reset_index(inplace=True)
+        # normalize
+        evaluateNetScore["pval"] = (
+            evaluateNetScore["pval"] - np.mean(evaluateNetScore["pval"])
+        ) / np.std(evaluateNetScore["pval"])
+        evaluateNetScore["perc_zero_tot"] = (
+            evaluateNetScore["perc_zero_tot"]
+            - np.mean(evaluateNetScore["perc_zero_tot"])
+        ) / np.std(evaluateNetScore["perc_zero_tot"])
+
+        evaluateNetScore["model_score"] = (
+            evaluateNetScore["model_score"] - np.mean(evaluateNetScore["model_score"])
+        ) / np.std(evaluateNetScore["model_score"])
+
+        evaluateNetScore["thres_criterion"] = (
+            evaluateNetScore["thres_criterion"]
+            - np.mean(evaluateNetScore["thres_criterion"])
+        ) / np.std(evaluateNetScore["thres_criterion"])
+
+        evaluateNetScore_X = np.array(
+            [
+                evaluateNetScore["pval"],
+                evaluateNetScore["perc_zero_tot"],
+                evaluateNetScore["model_score"],
+                evaluateNetScore["thres_criterion"],
+                evaluateNetScore["tpr"],
+            ]
+        )
+        evaluateNetScore_Y = np.array(
+            [
+                evaluateNetScore["tpr"],
+            ]
+        )
+        pca = PCA(n_components=2)
+        principal_component = pca.fit_transform(evaluateNetScore_X)
+        principal_evalscore = pd.DataFrame(
+            data=principal_component,
+            columns=["principal component 1", "principal component 2"],
+        )
+        print(
+            "Explained variation per principal component: {}".format(
+                pca.explained_variance_ratio_
+            )
+        )
+        plt.figure(figsize=(10, 10))
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=14)
+        plt.xlabel("Principal Component - 1", fontsize=20)
+        plt.ylabel("Principal Component - 2", fontsize=20)
+        plt.title("Principal Component Analysis of evaluation metrics", fontsize=20)
+        targets = ["perc_zero_tot", "model_score", "thres_criterion"]
+        colors = ["r", "g"]
+        targets = ["Good Network", "Bad Network"]
+        evaluateNetScore["tpr_eval"] = "Bad Network"
+        evaluateNetScore.loc[
+            evaluateNetScore["tpr"] >= 0.5, "tpr_eval"
+        ] = "Good Network"
+        colors = ["r", "g"]
+        print(evaluateNetScore)
+        for target, color in zip(targets, colors):
+            indicesToKeep = evaluateNetScore["tpr_eval"] == target
+            print(principal_evalscore)
+            plt.scatter(
+                principal_evalscore.loc[indicesToKeep, "principal component 1"],
+                principal_evalscore.loc[indicesToKeep, "principal component 2"],
+                c=color,
+                s=50,
+            )
+            plt.legend(targets)
+        plt.show()
+
+    def plot_evaluation_curves(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        dict_max = {
+            "pval": max(evaluateNetScore["pval"]),
+            "perc_zero_tot": max(evaluateNetScore["perc_zero_tot"]),
+            "model_score": max(evaluateNetScore["model_score"]),
+            "thres_criterion": max(evaluateNetScore["thres_criterion"]),
+            "tp": max(evaluateNetScore["tp"]),
+        }
+        evaluateNetScore.dropna(axis=0, inplace=True)
+        evaluateNetScore["pval"] = evaluateNetScore["pval"] / max(
+            evaluateNetScore["pval"]
+        )
+        evaluateNetScore["perc_zero_tot"] = evaluateNetScore["perc_zero_tot"] / max(
+            evaluateNetScore["perc_zero_tot"]
+        )
+        evaluateNetScore["model_score"] = evaluateNetScore["model_score"] / max(
+            evaluateNetScore["model_score"]
+        )
+        evaluateNetScore["thres_criterion"] = evaluateNetScore["thres_criterion"] / max(
+            evaluateNetScore["thres_criterion"]
+        )
+        evaluateNetScore["tp"] = evaluateNetScore["tp"] / max(evaluateNetScore["tp"])
+        evaluateNetScore.sort_values(by="fscore", inplace=True)
+        fig = plt.figure(figsize=(12, 10))
+        plt.plot(
+            range(0, len(evaluateNetScore["fscore"])),
+            evaluateNetScore["fscore"],
+            label="fscore",
+        )
+        plt.scatter(
+            range(0, len(evaluateNetScore["tp"])),
+            evaluateNetScore["pval"],
+            label="pval_" + str(dict_max["pval"]),
+        )
+        plt.scatter(
+            range(0, len(evaluateNetScore["tp"])),
+            evaluateNetScore["model_score"],
+            label="model_score_" + str(dict_max["model_score"]),
+        )
+        plt.scatter(
+            range(0, len(evaluateNetScore["tp"])),
+            evaluateNetScore["thres_criterion"],
+            label="thres_criterion_" + str(dict_max["thres_criterion"]),
+        )
+        plt.scatter(
+            range(0, len(evaluateNetScore["tp"])),
+            evaluateNetScore["perc_zero_tot"],
+            label="perc_zero_tot_" + str(dict_max["perc_zero_tot"]),
+        )
+        plt.legend()
+        plt.savefig(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_plot_filename
+        )
+
+    def plot_precision_curves(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        fig = plt.figure(figsize=(12, 10))
+        plt.scatter(evaluateNetScore["precision"], evaluateNetScore["nb_candidate"])
+        plt.savefig(self.save_dir_path + "network/evaluateNet/" + "precision_plot.png")
+
+    def plot_fscore_curves(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        fig = plt.figure(figsize=(12, 10))
+        plt.scatter(evaluateNetScore["fscore"], evaluateNetScore["nb_candidate"])
+        plt.savefig(self.save_dir_path + "network/evaluateNet/" + "fscore_plot.png")
+
+    def plot_recall_curves(self, log10=True):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        best_candidates_1 = evaluateNetScore[
+            (evaluateNetScore["recall"] >= 0.19)
+            & (np.log10(evaluateNetScore["nb_candidate"]) >= 1.9)
+        ]
+        best_candidates_2 = evaluateNetScore[
+            (evaluateNetScore["recall"] >= 0.30)
+            & (np.log10(evaluateNetScore["nb_candidate"]) >= 0.8)
+        ]
+        print(best_candidates_1)
+        print(best_candidates_2)
+        fig = plt.figure(figsize=(12, 10))
+        if log10 == True:
+            plt.scatter(
+                evaluateNetScore["recall"], np.log10(evaluateNetScore["nb_candidate"])
+            )
+            plt.scatter(
+                best_candidates_1["recall"],
+                np.log10(best_candidates_1["nb_candidate"]),
+                color="red",
+            )
+            plt.scatter(
+                best_candidates_2["recall"],
+                np.log10(best_candidates_2["nb_candidate"]),
+                color="red",
+            )
+            for index, points in best_candidates_1.iterrows():
+                label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
+
+                plt.annotate(
+                    label,  # this is the text
+                    (
+                        points["recall"],
+                        np.log10(points["nb_candidate"]),
+                    ),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    rotation=60,
+                )  # horizontal alignment can be left, right or center
+            for _, points in best_candidates_2.iterrows():
+                label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
+
+                plt.annotate(
+                    label,  # this is the text
+                    (
+                        points["recall"],
+                        np.log10(points["nb_candidate"]),
+                    ),  # these are the coordinates to position the label
+                    textcoords="offset points",  # how to position the text
+                    xytext=(0, 10),  # distance from text to points (x,y)
+                    ha="center",
+                    rotation=60,
+                )  # horizontal alignment can be left, right or center
+            plt.savefig(
+                self.save_dir_path + "network/evaluateNet/" + "recalllog10_plot.png"
+            )
+        else:
+            plt.scatter(evaluateNetScore["recall"], evaluateNetScore["nb_candidate"])
+            plt.savefig(self.save_dir_path + "network/evaluateNet/" + "recall_plot.png")
+
+    def plot_pval_curves(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        fig = plt.figure(figsize=(12, 10))
+        plt.scatter(evaluateNetScore["pval"], evaluateNetScore["nb_candidate"])
+        plt.savefig(self.save_dir_path + "network/evaluateNet/" + "pval_plot.png")
+
+    def plot_pczero_curves(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        fig = plt.figure(figsize=(12, 10))
+        plt.scatter(evaluateNetScore["perc_zero_tot"], evaluateNetScore["nb_candidate"])
+        plt.scatter(
+            evaluateNetScore["pval"] / np.max(evaluateNetScore["pval"]),
+            evaluateNetScore["nb_candidate"],
+        )
+        plt.savefig(
+            self.save_dir_path + "network/evaluateNet/" + "perc_zero_tot_plot.png"
+        )
 
     def save_candidates_info(
         self,
@@ -228,7 +533,7 @@ class GRN:
         nb_candidate=0,
         datapath=None,
     ):
-        with open(save_path + "nb_candidate_info.txt", "a") as file:
+        with open(save_path + self.eval_filename, "a") as file:
             file.write(
                 pval
                 + ","
@@ -483,7 +788,11 @@ class GRN:
         # Prepare data for from-to format (adapted for Oceane Cassan net-evaluation)
         df.columns = ["from", "to"]
         sub_df = df[df["to"].str.contains("-")]
+        sub_df.append(df[df["from"].str.contains("-")])
         df.drop(df[df["to"].str.contains("-")].index, axis=0, inplace=True)
+        df.drop(df[df["from"].str.contains("ATMG")].index, axis=0, inplace=True)
+        df.drop(df[df["to"].str.contains("ATMG")].index, axis=0, inplace=True)
+        df.drop(df[df["from"].str.contains("-")].index, axis=0, inplace=True)
         df["_to_comp"] = df["from"] + "-" + df["to"]
         for fr, to in zip(sub_df["from"], sub_df["to"]):
             if "-" in fr:
@@ -554,18 +863,49 @@ class GRN:
 
         return matching_target
 
+    # def update_cytoscape_graph_eval(self, save_path):
+    #     list_gene_info = pd.read_table(
+    #         self.gene_path + self.eval_score_plot_filename, header=0, sep=","
+    #     )
+    #     for _, points in list_gene_info.iterrows():
+    #         if points["nb_candidate"] < 1:
+    #             continue
+    #         old_edge_table = points["datapath"] + "/" + self.edge_table_filename
+    #         new_edge_table = (
+    #             points["datapath"] + "/" + self.edge_table_post_eval_filename
+    #         )
+
     def send_for_evaluation(self, save_path):
-        out_save_path = save_path + "nb_candidate_info_score.txt"
-        save_path = save_path + "nb_candidate_info.txt"
+        self.eval_score_filename
+        self.eval_filename
+        out_save_path = save_path + self.eval_score_filename
+        save_path = save_path + self.eval_filename
         import subprocess
 
+        # res = subprocess.call(
+        #     "Rscript NetworkEvaluation/runEvaluateNet.R "
+        #     + save_path
+        #     + " "
+        #     + out_save_path
+        #     + " "
+        #     + self.edge_simplified_table_filename
+        #     + " "
+        #     + self.save_dir_path
+        #     + self.tf_all_list_filename
+        #     + " "
+        #     + self.save_dir_path
+        #     + self.gene_all_list_filename,
+        #     shell=True,
+        # )
         res = subprocess.call(
             "Rscript NetworkEvaluation/runEvaluateNet.R "
             + save_path
             + " "
             + out_save_path
             + " "
-            + self.edge_simplified_table_filename,
+            + self.edge_simplified_table_filename
+            + " "
+            + self.found_edges_info_out_path,
             shell=True,
         )
         print(res)

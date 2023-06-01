@@ -43,3 +43,17 @@ PVAL 20
 # for each edge between a TF (or TF interaction)
 # and a target genes (case of accuracy metric)
 MODEL_SCORE 0.0
+
+# PATH SPECIFIC PARAMETERS
+node_table_filename node_table.csv
+edge_table_filename edge_table.csv
+edge_table_post_eval_filename edge_table_post_eval.csv
+edge_simplified_table_filename edge_simplified_table.csv
+resume_table_filename resume_table.csv
+tf_target_filename resume_TF_target.txt
+tf_all_list_filename list_all_tf.txt
+gene_all_list_filename list_all_gene.txt
+eval_score_filename nb_candidate_info_score.txt
+eval_filename nb_candidate_info.txt
+eval_score_plot_filename nb_candidate_info_score.txt
+eval_plot_filename param_eval.png

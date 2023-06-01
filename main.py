@@ -42,7 +42,7 @@ perc_zero_tot_list = [0.5, 0.4, 0.3, 0.2, 0.1]
 thres_criterion_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 G = GRN(out_data)
-G.init_candidate_info_file(G.save_dir_path + "network/evaluateNet/")
+G.init_candidate_info_file()
 for pval in pval_list:
     for model_score in model_score_list:
         for perc_zero_tot in perc_zero_tot_list:
