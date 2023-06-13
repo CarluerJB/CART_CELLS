@@ -7,3 +7,5 @@ logs/
 go-basic.obo
 evaluateNetwork.R
 validated_edges.rda
+*.out
+run_nitrate.sh

@@ -15,6 +15,7 @@ import seaborn as sns
 from umap import UMAP
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from pathlib import Path
 
 np.seterr(divide="ignore")
 import warnings
@@ -22,6 +23,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 RANDOM_STATE = 42
+
 
 class CART_TREE:
     def __init__(
@@ -31,6 +33,7 @@ class CART_TREE:
         save_dir_path,
         analysis_type="genes",
         parameter_file_path="PARAMETERS/PARAM_CART_DEFAULT.txt",
+        target_sub_list_path=None,
     ):
         self.SORT_ORDER_REF = {
             "model_score": False,
@@ -66,6 +69,15 @@ class CART_TREE:
             self.Y = self.ge_matrix.drop(self.tf_list).transpose()
             self.X = self.ge_matrix.loc[self.tf_list].transpose()
             self.Y_norm = self.Y - self.Y.mean() / self.Y.std()
+            self.Y_target_list = self.Y.columns
+            if target_sub_list_path != None:
+                self.Y_target_list = list(
+                    set(
+                        pd.read_table(target_sub_list_path, header=None)[
+                            0
+                        ].values.tolist()
+                    ).intersection(self.Y.columns.values.tolist())
+                )
         else:
             self.X = self.ge_matrix.drop(self.tf_list).transpose()
             self.Y = self.ge_matrix.loc[self.tf_list].transpose()
@@ -182,7 +194,7 @@ class CART_TREE:
 
     def subsample_columns(self, AGI_list):
         self.Y = self.Y[AGI_list]
-    
+
     def y_to_quantile(self):
         Y_copy = self.Y.copy(deep=True)
         Y_quant = np.quantile(self.Y.to_numpy().flatten(), [0.33, 0.66, 1.0]).astype(
@@ -231,10 +243,10 @@ class CART_TREE:
             "\r GENERATING CART tree for: {0} ({1}%, time left: {2} sec)".format(
                 Y_id,
                 round(
-                    self._perc_cart_tree_interface * 100 / len(self.Y.columns), 3
+                    self._perc_cart_tree_interface * 100 / len(self.Y_target_list), 3
                 ),
                 round(
-                    len(self.Y.columns) * self._time_per_tree
+                    len(self.Y_target_list) * self._time_per_tree
                     - self._perc_cart_tree_interface * self._time_per_tree,
                     3,
                 ),
@@ -251,6 +263,7 @@ class CART_TREE:
             class_weight=self.CLASS_WEIGHT,
         )
         self.clf = self.clf.fit(self.X, Y_single)
+        print("Done")
 
     def save_CART_tree(self, Y_id=None):
         if Y_id is None:
@@ -312,7 +325,7 @@ class CART_TREE:
         common_norm = False
         log_y_axis = False
         histplot_multiple = "dodge"
-        histplot_binwidth = 0.2
+        histplot_binwidth = None
         colors_palette = sns.color_palette("tab10", 4)
         ratio_sign = 10
         show_zero = False
@@ -321,6 +334,7 @@ class CART_TREE:
         cell_height = 22
         swatch_width = 48
         xaxis_label_size = 8
+        legend_fontsize = 6.5
         plot_method = "print"
         path = Path(self.embedded_data_path)
         if path.is_file():
@@ -454,7 +468,8 @@ class CART_TREE:
                                 0
                             ]:
                                 is_node3_mp_mm_sign = "***"
-
+        else:
+            return
         figure, axis = plt.subplots(nb_plot, 4, figsize=(15, 10))
         axis = axis.ravel()
         TF_1_sup = self.Y.loc[self.X[TF_1] > lim_val_1, TG]
@@ -467,21 +482,38 @@ class CART_TREE:
         else:
             TF_1_sup_norm = TF_1_sup_norm + 1
             TF_1_inf_norm = TF_1_inf_norm + 1
-        sns.histplot(
-            [
-                TF_1_inf_norm if len(TF_1_inf_norm) > 0 else np.nan,
-                TF_1_sup_norm if len(TF_1_sup_norm) > 0 else np.nan,
-            ][::-1],
-            kde=kde,
-            legend=True,
-            ax=axis[0],
-            stat="percent",
-            common_norm=common_norm,
-            element="bars",
-            multiple=histplot_multiple,
-            binwidth=histplot_binwidth,
-            palette=colors_palette[:2][::-1],
-        )
+        try:
+            sns.histplot(
+                [
+                    TF_1_inf_norm if len(TF_1_inf_norm) > 0 else np.nan,
+                    TF_1_sup_norm if len(TF_1_sup_norm) > 0 else np.nan,
+                ][::-1],
+                kde=kde,
+                legend=True,
+                ax=axis[0],
+                stat="percent",
+                common_norm=common_norm,
+                element="bars",
+                multiple=histplot_multiple,
+                binwidth=histplot_binwidth,
+                palette=colors_palette[:2][::-1],
+            )
+        except:
+            sns.histplot(
+                [
+                    TF_1_inf_norm if len(TF_1_inf_norm) > 0 else np.nan,
+                    TF_1_sup_norm if len(TF_1_sup_norm) > 0 else np.nan,
+                ][::-1],
+                kde=kde != True,
+                legend=True,
+                ax=axis[0],
+                stat="percent",
+                common_norm=common_norm,
+                element="bars",
+                multiple=histplot_multiple,
+                binwidth=histplot_binwidth,
+                palette=colors_palette[:2][::-1],
+            )
         kde = True
         histplot_binwidth = 0.2
         legend = axis[0].get_legend()
@@ -500,7 +532,7 @@ class CART_TREE:
                 text_pos_x,
                 y,
                 elem,
-                fontsize=14,
+                fontsize=legend_fontsize,
                 horizontalalignment="left",
                 verticalalignment="center",
             )
@@ -513,7 +545,7 @@ class CART_TREE:
                     edgecolor="0.7",
                 )
             )
-        axis[0].legend(handles=handle_list, labels=label_list)
+        axis[0].legend(handles=handle_list, labels=label_list, fontsize=legend_fontsize)
 
         sns.violinplot(
             data=[TF_1_inf, TF_1_sup],
@@ -576,16 +608,18 @@ class CART_TREE:
         axis[3].scatter(
             x=embedded_data[:, 0][i_cell_sup],
             y=embedded_data[:, 1][i_cell_sup],
-            s=3,
+            s=1,
             color=colors_palette[:2][::-1][0],
             marker=".",
+            alpha=0.05,
         )
         axis[3].scatter(
             x=embedded_data[:, 0][i_cell_inf],
             y=embedded_data[:, 1][i_cell_inf],
-            s=3,
+            s=1,
             color=colors_palette[:2][::-1][1],
             marker=".",
+            alpha=0.05,
         )
 
         if show_first_layer_res:
@@ -641,7 +675,7 @@ class CART_TREE:
                 histplot_binwidth = None
             sns.histplot(
                 data=[
-                     TF_1_inf_TF_2_inf_norm
+                    TF_1_inf_TF_2_inf_norm
                     if len(TF_1_inf_TF_2_inf_norm) > 0
                     else np.nan,
                     TF_1_inf_TF_2_sup_norm
@@ -653,7 +687,7 @@ class CART_TREE:
                     TF_1_sup_TF_2_sup_norm
                     if len(TF_1_sup_TF_2_sup_norm) > 0
                     else np.nan,
-                    ][::-1],
+                ][::-1],
                 kde=kde,
                 legend=True,
                 ax=axis[4],
@@ -716,7 +750,7 @@ class CART_TREE:
                     text_pos_x,
                     y,
                     elem,
-                    fontsize=14,
+                    fontsize=legend_fontsize,
                     horizontalalignment="left",
                     verticalalignment="center",
                 )
@@ -729,7 +763,9 @@ class CART_TREE:
                         edgecolor="0.7",
                     )
                 )
-            axis[4].legend(handles=handle_list, labels=label_list)
+            axis[4].legend(
+                handles=handle_list, labels=label_list, fontsize=legend_fontsize
+            )
             sns.violinplot(
                 [
                     TF_1_inf_TF_2_inf,
@@ -967,30 +1003,34 @@ class CART_TREE:
             axis[7].scatter(
                 x=embedded_data[:, 0][i_cell_sup_sup],
                 y=embedded_data[:, 1][i_cell_sup_sup],
-                s=3,
+                s=1,
                 color=colors_palette[::-1][0],
                 marker=".",
+                alpha=0.05,
             )
             axis[7].scatter(
                 x=embedded_data[:, 0][i_cell_sup_inf],
                 y=embedded_data[:, 1][i_cell_sup_inf],
-                s=3,
+                s=1,
                 color=colors_palette[::-1][1],
                 marker=".",
+                alpha=0.05,
             )
             axis[7].scatter(
                 x=embedded_data[:, 0][i_cell_inf_sup],
                 y=embedded_data[:, 1][i_cell_inf_sup],
-                s=3,
+                s=1,
                 color=colors_palette[::-1][2],
                 marker=".",
+                alpha=0.05,
             )
             axis[7].scatter(
                 x=embedded_data[:, 0][i_cell_inf_inf],
                 y=embedded_data[:, 1][i_cell_inf_inf],
-                s=3,
+                s=1,
                 color=colors_palette[::-1][3],
                 marker=".",
+                alpha=0.05,
             )
             if full_first_layer:
                 # TF1 + TF3
@@ -1121,7 +1161,7 @@ class CART_TREE:
                         text_pos_x,
                         y,
                         elem,
-                        fontsize=14,
+                        fontsize=legend_fontsize,
                         horizontalalignment="left",
                         verticalalignment="center",
                     )
@@ -1134,7 +1174,9 @@ class CART_TREE:
                             edgecolor="0.7",
                         )
                     )
-                axis[8].legend(handles=handle_list, labels=label_list)
+                axis[8].legend(
+                    handles=handle_list, labels=label_list, fontsize=legend_fontsize
+                )
 
                 sns.violinplot(
                     [
@@ -1341,30 +1383,34 @@ class CART_TREE:
                 axis[11].scatter(
                     x=embedded_data[:, 0][i_cell_sup_sup],
                     y=embedded_data[:, 1][i_cell_sup_sup],
-                    s=3,
+                    s=1,
                     color=colors_palette[::-1][0],
                     marker=".",
+                    alpha=0.05,
                 )
                 axis[11].scatter(
                     x=embedded_data[:, 0][i_cell_sup_inf],
                     y=embedded_data[:, 1][i_cell_sup_inf],
-                    s=3,
+                    s=1,
                     color=colors_palette[::-1][1],
                     marker=".",
+                    alpha=0.05,
                 )
                 axis[11].scatter(
                     x=embedded_data[:, 0][i_cell_inf_sup],
                     y=embedded_data[:, 1][i_cell_inf_sup],
-                    s=3,
+                    s=1,
                     color=colors_palette[::-1][2],
                     marker=".",
+                    alpha=0.05,
                 )
                 axis[11].scatter(
                     x=embedded_data[:, 0][i_cell_inf_inf],
                     y=embedded_data[:, 1][i_cell_inf_inf],
-                    s=3,
+                    s=1,
                     color=colors_palette[::-1][3],
                     marker=".",
+                    alpha=0.05,
                 )
         if full_first_layer:
             plt.suptitle(
@@ -1394,10 +1440,30 @@ class CART_TREE:
         else:
             raise (NotImplementedError())
 
-    def save_compiled_results(self):
-        self.compiled_table.to_csv(
-            self.save_dir_path + "compiled_table.csv", header=True, index=False, sep=","
-        )
+    def save_compiled_results(self, compiled_row=None, append=False):
+        if compiled_row is not None:
+            if append == True:
+                compiled_row.to_csv(
+                    self.save_dir_path + "compiled_table_a.csv",
+                    header=False,
+                    index=False,
+                    sep=",",
+                    mode="a",
+                )
+            else:
+                self.compiled_table.to_csv(
+                    self.save_dir_path + "compiled_table.csv",
+                    header=True,
+                    index=False,
+                    sep=",",
+                )
+        else:
+            self.compiled_table.to_csv(
+                self.save_dir_path + "compiled_table.csv",
+                header=True,
+                index=False,
+                sep=",",
+            )
 
     def compile_cart_results(self, Y_id):
         compiled_row = pd.DataFrame(
@@ -1451,15 +1517,17 @@ class CART_TREE:
             }
         )
         cond = self.tree_rules[0][(self.tree_rules[0].find("|--- ") + len("|--- ")) :]
+        node_i_list = []
+        i = 1
         if cond.find(" <=") != -1:
             compiled_row.loc[0, self.X_txt + "1"] = cond[: cond.find(" <=")]
-            compiled_row.loc[0, "lim1"] = float(cond[cond.find(" <=") + 4 : -2])
+            compiled_row.loc[0, "lim1"] = float(cond[cond.find(" <=") + 4 : -1])
             compiled_row.loc[0, "sign1"] = "<="
             compiled_row.loc[0, "gini_score_0"] = self._CART_scoring.loc[
                 0, "gini_score"
             ]
-        i = 1
-        node_i_list = [1]
+            node_i_list.append(1)
+
         for line in self.tree_rules:
             if re.search("^\|   \|--- ", line):
                 pass
@@ -1469,7 +1537,7 @@ class CART_TREE:
             if cond.find(" <=") != -1:
                 compiled_row.loc[0, self.X_txt + str(i + 1)] = cond[: cond.find(" <=")]
                 compiled_row.loc[0, "lim" + str(i + 1)] = float(
-                    cond[cond.find(" <=") + 4 : -2]
+                    cond[cond.find(" <=") + 4 : -1]
                 )
                 compiled_row.loc[0, "sign" + str(i + 1)] = "<="
                 compiled_row.loc[0, "gini_score_" + str(i)] = self._CART_scoring.loc[
@@ -1831,14 +1899,14 @@ class CART_TREE:
                     if len(TF_1_inf_TF_3_inf.index) > 0:
                         compiled_row.loc[0, "N3_p-val_-+_--"] = mp_mm
                         i = i + 1
-        self.compiled_table = pd.concat([self.compiled_table, compiled_row])
+            self.compiled_table = pd.concat([self.compiled_table, compiled_row])
+            self.save_compiled_results(compiled_row, append=True)
         self.compiled_row = compiled_row.copy(deep=True)
         self.end = time.time()
         self._time_per_tree = max(self.end - self.start, self._time_per_tree)
 
     def filter_cart_results(
-        self,
-        sort_by=[],
+        self, sort_by=[],
     ):
         self.filtered_table = self.compiled_table.copy(deep=True)
         sort_order = [True] * len(self.SORT_ORDER_REF.keys())
