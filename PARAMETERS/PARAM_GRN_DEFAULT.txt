@@ -57,3 +57,4 @@ eval_score_filename nb_candidate_info_score.txt
 eval_filename nb_candidate_info.txt
 eval_score_plot_filename nb_candidate_info_score.txt
 eval_plot_filename param_eval.png
+found_edges_info_out_path found_edges.csv

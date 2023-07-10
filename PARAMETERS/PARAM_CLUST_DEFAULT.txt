@@ -6,7 +6,7 @@ GO_TERM_FMT BP
 
 # Pval to use choice is between 
 # p_uncorrected, p_bonferroni, p_sidak, p_holm, p_fdr_bh
-PVAL p_uncorrected
+PVAL p_bonferroni
 
 # Allow to filter point based on their PVALUE
 PVAL_THRES 0.01

@@ -31,6 +31,7 @@ for(i in 1:nrow(model_eval)) {
         load(file=validated_edges_path)
         # results = evaluate_network(net, subset_validated_edges=validated_edges, input_genes=list_all_gene, input_tfs=list_all_tf)
         results = evaluate_network(net, subset_validated_edges=validated_edges)
+        print(results)
         model_eval[i,"tp"] = results$tp
         model_eval[i,"fp"] = results$fp
         model_eval[i,"tpr"] = results$tpr
@@ -39,8 +40,8 @@ for(i in 1:nrow(model_eval)) {
         model_eval[i,"recall"] = results$recall
         model_eval[i,"precision"] = results$tp / (results$tp + results$fp)
         model_eval[i,"fscore"] = 2*results$tp / (2*results$tp + results$fp + results$fn)
-        write.csv(results$edges, found_edges_info_out_path, row.names=FALSE
-        write.csv(model_eval, paste0(row$datapath, "/", models_info_out_path), row.names=FALSE)
+        write.csv(results$edges, paste0(row$datapath, "/", found_edges_info_out_path), row.names=FALSE)
+        write.csv(model_eval, paste0(models_info_out_path), row.names=FALSE)
     }   
 }
 write.csv(model_eval, models_info_out_path, row.names=FALSE)

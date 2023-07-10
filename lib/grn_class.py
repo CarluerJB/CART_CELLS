@@ -13,12 +13,15 @@ import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+import hdbscan
+import seaborn as sns
+from umap import UMAP
 
 RANDOM_STATE = 42
 
 
 class GRN:
-    def __init__(self, out_data):
+    def __init__(self, out_data, TF_AGI_CORR=None):
         self.G = nx.Graph()
         self.node_size = []
         self.node_color = []
@@ -71,31 +74,37 @@ class GRN:
         # self.DIR_EDGE_COLOR = "red"
         # self.UNDIR_EDGE_COLOR = "blue"
         # self.THRES_CRITERION = 1.0
-        self.LIST_TF = {  # TEMPORARY FIND A SMART WAY TO REMOVE IT FROM CODE !
-            "BEE2": "AT4G36540",
-            "CDF1": "AT5G62430",
-            "bZIP3": "AT5G15830",
-            "COL5": "AT5G57660",
-            "CRF4": "AT4G27950",
-            "ERF5": "AT5G47230",
-            "GATA17": "AT3G16870",
-            "HAT22": "AT4G37790",
-            "HB6": "AT2G22430",
-            "HHO2": "AT1G68670",
-            "HHO3": "AT1G25550",
-            "LBD37": "AT5G67420",
-            "LBD38": "AT3G49940",
-            "MYB61": "AT1G09540",
-            "NAC4": "AT5G07680",
-            "NAP": "AT1G69490",
-            "RAV1": "AT1G13260",
-            "TCP23": "AT1G35560",
-            "TGA1": "AT5G65210",
-            "TGA4": "AT5G10030",
-            "VRN1": "AT3G18990",
-            "WRKY18": "AT4G31800",
-            "WRKY54": "AT2G40750",
-        }
+        if TF_AGI_CORR == None:
+            self.LIST_TF = {  # TEMPORARY FIND A SMART WAY TO REMOVE IT FROM CODE !
+                "BEE2": "AT4G36540",
+                "CDF1": "AT5G62430",
+                "bZIP3": "AT5G15830",
+                "COL5": "AT5G57660",
+                "CRF4": "AT4G27950",
+                "ERF5": "AT5G47230",
+                "GATA17": "AT3G16870",
+                "HAT22": "AT4G37790",
+                "HB6": "AT2G22430",
+                "HHO2": "AT1G68670",
+                "HHO3": "AT1G25550",
+                "LBD37": "AT5G67420",
+                "LBD38": "AT3G49940",
+                "MYB61": "AT1G09540",
+                "NAC4": "AT5G07680",
+                "NAP": "AT1G69490",
+                "RAV1": "AT1G13260",
+                "TCP23": "AT1G35560",
+                "TGA1": "AT5G65210",
+                "TGA4": "AT5G10030",
+                "VRN1": "AT3G18990",
+                "WRKY18": "AT4G31800",
+                "WRKY54": "AT2G40750",
+            }
+        else:
+            temp_TG_TF = pd.read_table(
+                TF_AGI_CORR, sep=",", header=None, names=["gene", "AGI"]
+            )
+            self.LIST_TF = dict(zip(temp_TG_TF.gene, temp_TG_TF.AGI))
         self.create_out_dir("network")
         self.create_out_dir("network/evaluateNet")
         self.create_out_dir("network/genes_study")
@@ -314,12 +323,13 @@ class GRN:
                 evaluateNetScore["tpr"],
             ]
         )
-        pca = PCA(n_components=2)
-        principal_component = pca.fit_transform(evaluateNetScore_X)
+        pca = PCA(n_components=None)
+        principal_component = pca.fit_transform(evaluateNetScore_X.T)
         principal_evalscore = pd.DataFrame(
             data=principal_component,
             columns=["principal component 1", "principal component 2"],
         )
+        print(principal_evalscore)
         print(
             "Explained variation per principal component: {}".format(
                 pca.explained_variance_ratio_
@@ -345,7 +355,7 @@ class GRN:
             print(principal_evalscore)
             plt.scatter(
                 principal_evalscore.loc[indicesToKeep, "principal component 1"],
-                principal_evalscore.loc[indicesToKeep, "principal component 2"],
+                principal_evalscore.loc[indicesToKeep, "principal component 3"],
                 c=color,
                 s=50,
             )
@@ -437,9 +447,10 @@ class GRN:
             sep=",",
             header=0,
         )
+
         best_candidates_1 = evaluateNetScore[
-            (evaluateNetScore["recall"] >= 0.19)
-            & (np.log10(evaluateNetScore["nb_candidate"]) >= 1.9)
+            (evaluateNetScore["recall"] >= 0.072)
+            & (np.log10(evaluateNetScore["nb_candidate"]) >= 2.0)
         ]
         best_candidates_2 = evaluateNetScore[
             (evaluateNetScore["recall"] >= 0.30)
@@ -447,11 +458,21 @@ class GRN:
         ]
         print(best_candidates_1)
         print(best_candidates_2)
-        fig = plt.figure(figsize=(12, 10))
+        plt.figure(figsize=(12, 10))
         if log10 == True:
-            plt.scatter(
-                evaluateNetScore["recall"], np.log10(evaluateNetScore["nb_candidate"])
+
+            ax = plt.axes()
+            ax.scatter(
+                evaluateNetScore["recall"],
+                np.log10(evaluateNetScore["nb_candidate"]),
+                c="g",
+                marker="o",
+                s=2,
             )
+            ax.set_title("Determination of GRN size effect on recall")
+            ax.set_ylabel("Number of GRN node")
+            ax.set_xlabel("Recall")
+
             plt.scatter(
                 best_candidates_1["recall"],
                 np.log10(best_candidates_1["nb_candidate"]),
@@ -462,20 +483,37 @@ class GRN:
                 np.log10(best_candidates_2["nb_candidate"]),
                 color="red",
             )
+            displacement_x = 0.00
+            displacement_y = 0.00
             for index, points in best_candidates_1.iterrows():
                 label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
 
                 plt.annotate(
-                    label,  # this is the text
-                    (
-                        points["recall"],
-                        np.log10(points["nb_candidate"]),
+                    label,
+                    (points["recall"], np.log10(points["nb_candidate"])),
+                    xycoords="data",
+                    xytext=(
+                        0.5 + displacement_y,
+                        np.log(2) + displacement_x,
                     ),
-                    textcoords="offset points",
-                    xytext=(0, 10),
-                    ha="center",
-                    rotation=60,
-                )  # horizontal alignment can be left, right or center
+                    textcoords="axes fraction",
+                    va="top",
+                    ha="left",
+                    arrowprops=dict(facecolor="black", shrink=0.05),
+                )
+                # plt.annotate(
+                #     label,  # this is the text
+                #     (
+                #         points["recall"] + displacement,
+                #         np.log10(points["nb_candidate"]) + displacement,
+                #     ),
+                #     textcoords="offset points",
+                #     xytext=(0, 10),
+                #     ha="center",
+                #     rotation=60,
+                # )  # horizontal alignment can be left, right or center
+                displacement_x += 0.015
+                displacement_y += 0.01
             for _, points in best_candidates_2.iterrows():
                 label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
 
@@ -494,7 +532,18 @@ class GRN:
                 self.save_dir_path + "network/evaluateNet/" + "recalllog10_plot.png"
             )
         else:
-            plt.scatter(evaluateNetScore["recall"], evaluateNetScore["nb_candidate"])
+            ax = plt.axes()
+            print(evaluateNetScore["recall"])
+            ax.scatter(
+                evaluateNetScore["recall"],
+                evaluateNetScore["nb_candidate"],
+                c="g",
+                marker="o",
+                s=2,
+            )
+            ax.set_title("Determination of GRN size effect on recall")
+            ax.set_ylabel("Number of GRN node")
+            ax.set_xlabel("recall")
             plt.savefig(self.save_dir_path + "network/evaluateNet/" + "recall_plot.png")
 
     def plot_pval_curves(self):
@@ -522,6 +571,54 @@ class GRN:
         plt.savefig(
             self.save_dir_path + "network/evaluateNet/" + "perc_zero_tot_plot.png"
         )
+
+    def detect_anomaly_and_plot(self):
+        evaluateNetScore = pd.read_table(
+            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            sep=",",
+            header=0,
+        )
+        evaluateNetScore = evaluateNetScore.fillna(0)
+        # evaluateNetScore.dropna(subset=["recall", "nb_candidate"], inplace=True)
+        df = np.array(
+            [
+                evaluateNetScore["recall"].to_numpy(),
+                evaluateNetScore["nb_candidate"].to_numpy(),
+                evaluateNetScore["pval"].to_numpy(),
+                evaluateNetScore["perc_zero_tot"].to_numpy(),
+                evaluateNetScore["thres_criterion"].to_numpy(),
+                evaluateNetScore["fscore"].to_numpy(),
+            ]
+        ).T
+
+        print(df.shape)
+        model = UMAP(n_components=2, min_dist=0.3, n_neighbors=30, metric="correlation")
+        embedded_data = model.fit_transform(df)
+        color1 = "#D4CC47"
+        color2 = "#7C4D8B"
+        num_points = 5000
+        plt.scatter(*embedded_data.T)
+        plt.scatter(
+            *embedded_data[np.where(evaluateNetScore["recall"].to_numpy() > 0.3)].T,
+            color="red",
+        )
+        plt.show()
+        print(embedded_data.shape)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=500).fit(embedded_data)
+        # sns.distplot(
+        #     clusterer.outlier_scores_[np.isfinite(clusterer.outlier_scores_)], rug=True
+        # )
+        threshold = pd.Series(clusterer.outlier_scores_).quantile(0.95)
+        outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
+        print(outliers)
+        print(len([*df.T]))
+        # plt.scatter(*df.T, s=50, linewidth=0, color="gray", alpha=0.25)
+        # plt.scatter(*df[outliers].T, s=50, linewidth=0, color="red", alpha=0.5)
+        sns.distplot(
+            clusterer.outlier_scores_[np.isfinite(clusterer.outlier_scores_)], rug=True
+        )
+
+        plt.show()
 
     def save_candidates_info(
         self,
@@ -829,10 +926,39 @@ class GRN:
                 index_label="source",
             )
 
-    def save_target_genes(self, sources, drop_inter=False):
+    def save_target_genes(
+        self, sources, drop_inter=False
+    ):  # add_inter_to_direct=True):
         matching_target = []
+        print(sources)
         for source in sources:
             df, _, _ = self.to_tables()
+            # if add_inter_to_direct:
+            #     inter = df.loc[df[df["target"].str.contains("-") == True].index].copy(
+            #         deep=True
+            #     )
+            #     for elem in inter["target"].to_list():
+            #         TF1, TF2 = elem.split("-")
+            #         i_src_TF1 = df[df["source"].str.contains(TF1) == True].index
+            #         i_src_TF2 = df[df["source"].str.contains(TF2) == True].index
+            #         i_tg_TF1 = df[df["target"].str.contains(TF1) == True].index
+            #         i_tg_TF2 = df[df["target"].str.contains(TF2) == True].index
+            #         i_common_tf_src = len(list(set(i_src_TF1).intersection(i_tg_TF2)))
+            #         i_common_tf_tg = len(list(set(i_src_TF2).intersection(i_tg_TF1)))
+            #         if (i_common_tf_src + i_common_tf_tg) == 0:
+            #             print("did we go here ?")
+            #             missing_inter = pd.DataFrame(
+            #                 {
+            #                     "source": [TF1],
+            #                     "target": [TF2],
+            #                     "weight": None,
+            #                     "line_type": None,
+            #                     "edge_color": None,
+            #                     "interaction": None,
+            #                 }
+            #             )
+            #             df.append(missing_inter)
+
             if drop_inter == True:
                 df.drop(
                     df[df["target"].str.contains("-") == True].index,
@@ -876,8 +1002,6 @@ class GRN:
     #         )
 
     def send_for_evaluation(self, save_path):
-        self.eval_score_filename
-        self.eval_filename
         out_save_path = save_path + self.eval_score_filename
         save_path = save_path + self.eval_filename
         import subprocess
@@ -957,3 +1081,25 @@ class GRN:
                     obj = GoeaCliFnc(GoeaCliArgs().args)
                     results_specified = obj.get_results()
                     obj.prt_results(results_specified)
+
+
+def hex_to_RGB(hex_str):
+    """#FFFFFF -> [255,255,255]"""
+    # Pass 16 to the integer function for change of base
+    return [int(hex_str[i : i + 2], 16) for i in range(1, 6, 2)]
+
+
+def get_color_gradient(c1, c2, n):
+    """
+    Given two hex colors, returns a color gradient
+    with n colors.
+    """
+    assert n > 1
+    c1_rgb = np.array(hex_to_RGB(c1)) / 255
+    c2_rgb = np.array(hex_to_RGB(c2)) / 255
+    mix_pcts = [x / (n - 1) for x in range(n)]
+    rgb_colors = [((1 - mix) * c1_rgb + (mix * c2_rgb)) for mix in mix_pcts]
+    return [
+        "#" + "".join([format(int(round(val * 255)), "02x") for val in item])
+        for item in rgb_colors
+    ]
