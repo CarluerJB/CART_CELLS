@@ -6,5 +6,5 @@ import sys
 out_data = sys.argv[2]
 
 clust = DENDROGRAM_TW(out_data)
-clust.load_data()
-clust.plot_clustering_TW()
+clust.load_GO_data()
+clust.plot_clustering_GOTW()

@@ -12,10 +12,10 @@ PVAL p_uncorrected
 PVAL_THRES 0.01
 
 # Number of point by tick on X axis (allow to avoid text overlap)
-X_POS_PER_PT 1
+X_POS_PER_PT 10
 
 # Number of point by tick on Y axis (allow to avoid text overlap)
-Y_POS_PER_PT 1
+Y_POS_PER_PT 10
 
 # Usefull to create HD images
 DPI 960

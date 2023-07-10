@@ -1464,8 +1464,14 @@ class CART_TREE:
                 index=False,
                 sep=",",
             )
+    
+    def load_compiled_results(self, filename = None):
+        if filename is None:
+            filename = "compiled_table.csv"
+        self.compiled_table = pd.read_table(self.save_dir_path + filename, header=0, sep=",")
 
-    def compile_cart_results(self, Y_id):
+
+    def compile_cart_results(self, Y_id, save=True, save_in_mem=True):
         compiled_row = pd.DataFrame(
             {
                 "AGI": [Y_id],
@@ -1899,8 +1905,10 @@ class CART_TREE:
                     if len(TF_1_inf_TF_3_inf.index) > 0:
                         compiled_row.loc[0, "N3_p-val_-+_--"] = mp_mm
                         i = i + 1
-            self.compiled_table = pd.concat([self.compiled_table, compiled_row])
-            self.save_compiled_results(compiled_row, append=True)
+            if save_in_mem:
+                self.compiled_table = pd.concat([self.compiled_table, compiled_row])
+            if save:
+                self.save_compiled_results(compiled_row, append=True)
         self.compiled_row = compiled_row.copy(deep=True)
         self.end = time.time()
         self._time_per_tree = max(self.end - self.start, self._time_per_tree)
