@@ -161,6 +161,8 @@ class CART_TREE:
                     self.THRES_PVAL = float(param)
                 if target_param == "CLASS_WEIGHT":
                     self.CLASS_WEIGHT = None if param[:-1] == "None" else "balanced"
+                if target_param == "RANDOM_STATE":
+                    self.RANDOM_STATE = int(param)
 
     def show_parameter(self):
         print("\n\tPARAMETERS : ")
@@ -172,6 +174,7 @@ class CART_TREE:
         print("\t\tTHRES_CRITERION : ", self.THRES_CRITERION)
         print("\t\tTHRES_ZERO_TE_TR : ", self.THRES_ZERO_TE_TR)
         print("\t\tTHRES_PVAL : ", self.THRES_PVAL)
+        print("\t\tRANDOM_STATE : ", self.RANDOM_STATE)
         print("\n")
 
     def create_out_dir(self):
@@ -210,14 +213,14 @@ class CART_TREE:
         else:
             Y_single = self.Y[Y_id]
         x_train, x_test, y_train, y_test = train_test_split(
-            self.X, Y_single, train_size=0.8, random_state=RANDOM_STATE
+            self.X, Y_single, train_size=0.8, random_state=self.RANDOM_STATE
         )
         clf_eval = tree.DecisionTreeClassifier(
             min_samples_split=self.MIN_SAMPLE_CUT,
             max_depth=3,
             min_samples_leaf=self.MIN_SAMPLE_CUT,
             criterion=self.CRITERION,
-            random_state=RANDOM_STATE,
+            random_state=self.RANDOM_STATE,
             class_weight=self.CLASS_WEIGHT,
         )
         clf_eval = clf_eval.fit(x_train, y_train)
@@ -259,7 +262,7 @@ class CART_TREE:
             max_depth=3,
             min_samples_leaf=self.MIN_SAMPLE_CUT,
             criterion=self.CRITERION,
-            random_state=RANDOM_STATE,
+            random_state=self.RANDOM_STATE,
             class_weight=self.CLASS_WEIGHT,
         )
         self.clf = self.clf.fit(self.X, Y_single)
