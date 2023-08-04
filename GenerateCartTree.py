@@ -24,14 +24,15 @@ cart.show_parameter()
 cart.create_out_dir()
 cart.load_GE_matrix()
 cart.load_tf_list()
-# sub_target_list = cart.Y_target_list.tolist()[(cart.Y_target_list.tolist().index("AT3G45530")+1):]
-# # for target in cart.Y_target_list:
-# for target in sub_target_list:
-#     cart.generate_CART_tree(target)
-#     cart.eval_model(target)
-#     cart.save_CART_tree(target)
-#     cart.compile_cart_results(target, save=True, save_in_mem=False)
-#     cart.save_cartlu_plot(target)
+sub_target_list = cart.Y_target_list.tolist()
+ # TO USE TO RUN THE COMPUTATION FROM A CERTAIN POINT
+# sub_target_list = cart.Y_target_list.tolist()[(cart.Y_target_list.tolist().index("AT5G63140")+1):]
+for target in sub_target_list:
+    cart.generate_CART_tree(target)
+    cart.eval_model(target)
+    cart.save_CART_tree(target)
+    cart.compile_cart_results(target, save=True, save_in_mem=False)
+    cart.save_cartlu_plot(target)
 cart.load_compiled_results(filename = "compiled_table_a.csv")
 cart.filter_cart_results()
 cart.save_filtered_results()

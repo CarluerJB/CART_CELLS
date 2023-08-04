@@ -578,14 +578,14 @@ class GRN:
             self.create_node([target["AGI"]], "GENE")
 
             # SIMPLE
-            self.create_node([target["TF1"]], "TF")
-            self.create_edge(target["AGI"], target["TF1"], score=target["gini_score_0"])
+            self.create_node(["TF_" + target["TF1"]], "TF")
+            self.create_edge(target["AGI"], "TF_" + target["TF1"], score=target["gini_score_0"])
 
             # INTER 1
             if target["gini_score_1"] != None:
                 if target["gini_score_1"] < self.THRES_CRITERION:
                     TF1_TF2_inter_node = self.create_node(
-                        [target["TF1"], target["TF2"]], "TF_INTER"
+                        ["TF_" + target["TF1"], "TF_" + target["TF2"]], "TF_INTER"
                     )
                     self.create_edge(
                         target["AGI"],
@@ -596,7 +596,7 @@ class GRN:
             if target["gini_score_2"] != None:
                 if target["gini_score_2"] < self.THRES_CRITERION:
                     TF1_TF3_inter_node = self.create_node(
-                        [target["TF1"], target["TF3"]], "TF_INTER"
+                        ["TF_" + target["TF1"], "TF_" + target["TF3"]], "TF_INTER"
                     )
                     self.create_edge(
                         target["AGI"],
