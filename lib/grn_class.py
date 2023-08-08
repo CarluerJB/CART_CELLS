@@ -1,5 +1,6 @@
 from cmath import log
 from codecs import ignore_errors
+from logging import raiseExceptions
 from tkinter.tix import COLUMN
 import networkx as nx
 import py4cytoscape as py4
@@ -773,7 +774,9 @@ class GRN:
 
             # SIMPLE
             self.create_node(["TF_" + target["TF1"]], "TF")
-            self.create_edge(target["AGI"], "TF_" + target["TF1"], score=target["gini_score_0"])
+            self.create_edge(
+                target["AGI"], "TF_" + target["TF1"], score=target["gini_score_0"]
+            )
 
             # INTER 1
             if target["gini_score_1"] != None:
@@ -955,9 +958,7 @@ class GRN:
         py4.delete_network(title)
 
     def save_graph_to_table(
-        self,
-        with_resume=True,
-        save_path=None,
+        self, with_resume=True, save_path=None, inter_behavior="drop"
     ):
         if save_path == None:
             path_edge_table = self.path_edge_table
@@ -988,29 +989,34 @@ class GRN:
         df.drop(df[df["to"].str.contains("ATMG")].index, axis=0, inplace=True)
         df.drop(df[df["from"].str.contains("-")].index, axis=0, inplace=True)
         df["_to_comp"] = df["from"] + "-" + df["to"]
-        for fr, to in zip(sub_df["from"], sub_df["to"]):
-            if "-" in fr:
-                fr = fr.split("-")
-            else:
-                fr = [fr]
-            if "-" in to:
-                to = to.split("-")
-            else:
-                to = [to]
-            for elem1 in fr:
-                for elem2 in to:
-                    if (elem1 + "-" + elem2) in df["_to_comp"].values:
-                        continue
-                    if (elem2 + "-" + elem1) in df["_to_comp"].values:
-                        continue
-                    if elem1 == elem2:
-                        continue
-                    new_row = {
-                        "from": elem1,
-                        "to": elem2,
-                        "_to_comp": elem1 + "-" + elem2,
-                    }
-                    df = df.append(new_row, ignore_index=True)
+        if inter_behavior == "transform":
+            for fr, to in zip(sub_df["from"], sub_df["to"]):
+                if "-" in fr:
+                    fr = fr.split("-")
+                else:
+                    fr = [fr]
+                if "-" in to:
+                    to = to.split("-")
+                else:
+                    to = [to]
+                for elem1 in fr:
+                    for elem2 in to:
+                        if (elem1 + "-" + elem2) in df["_to_comp"].values:
+                            continue
+                        if (elem2 + "-" + elem1) in df["_to_comp"].values:
+                            continue
+                        if elem1 == elem2:
+                            continue
+                        new_row = {
+                            "from": elem1,
+                            "to": elem2,
+                            "_to_comp": elem1 + "-" + elem2,
+                        }
+                        df = df.append(new_row, ignore_index=True)
+        elif inter_behavior == "drop":
+            pass
+        else:
+            raise NotImplementedError("Unknow behavior to adopt for interaction")
         df.drop(columns=["_to_comp"], inplace=True)
         df.replace(self.LIST_TF, inplace=True)
 
