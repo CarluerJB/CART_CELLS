@@ -71,6 +71,6 @@ G = GRN(out_data)
 # G.send_for_evaluation(G.save_dir_path + "network/evaluateNet/")
 # G.update_cytoscape_graph_eval(G.save_dir_path + "network/evaluateNet/") # TODO !
 # G.plot_evaluation_curves()
-G.plot_recall_curves(log10=True)
+G.plot_recall_curves(log10=False)
 # G.detect_anomaly_and_plot()
 # G.analyse_eval_PCA()

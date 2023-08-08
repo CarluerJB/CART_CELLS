@@ -3,7 +3,7 @@ from lib.grn_class import GRN
 from lib.dendrogram_tw_class import DENDROGRAM_TW
 import sys
 
-out_data = sys.argv[2]
+out_data = sys.argv[1]
 
 clust = DENDROGRAM_TW(out_data)
 clust.load_GO_data()

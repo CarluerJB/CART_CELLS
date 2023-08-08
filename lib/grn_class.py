@@ -441,7 +441,7 @@ class GRN:
         plt.scatter(evaluateNetScore["fscore"], evaluateNetScore["nb_candidate"])
         plt.savefig(self.save_dir_path + "network/evaluateNet/" + "fscore_plot.png")
 
-    def plot_recall_curves(self, log10=True):
+    def plot_recall_curves(self, log10=False, arrow=False):
         evaluateNetScore = pd.read_table(
             self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
             sep=",",
@@ -458,13 +458,168 @@ class GRN:
         ]
         print(best_candidates_1)
         print(best_candidates_2)
-        plt.figure(figsize=(12, 10))
-        if log10 == True:
+        plt.figure(figsize=(12, 8))
+        if arrow:
+            if log10 == True:
 
+                ax = plt.axes()
+                ax.scatter(
+                    evaluateNetScore["recall"],
+                    np.log10(evaluateNetScore["nb_candidate"]),
+                    c="g",
+                    marker="o",
+                    s=2,
+                )
+                ax.set_title("Determination of GRN size effect on recall")
+                ax.set_ylabel("Number of GRN node")
+                ax.set_xlabel("Recall")
+
+                plt.scatter(
+                    best_candidates_1["recall"],
+                    np.log10(best_candidates_1["nb_candidate"]),
+                    color="red",
+                )
+                plt.scatter(
+                    best_candidates_2["recall"],
+                    np.log10(best_candidates_2["nb_candidate"]),
+                    color="red",
+                )
+                displacement_x = 0.00
+                displacement_y = 0.00
+                for index, points in best_candidates_1.iterrows():
+                    label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
+
+                    plt.annotate(
+                        label,
+                        (points["recall"], np.log10(points["nb_candidate"])),
+                        xycoords="data",
+                        xytext=(
+                            0.5 + displacement_y,
+                            np.log(2) + displacement_x,
+                        ),
+                        textcoords="axes fraction",
+                        va="top",
+                        ha="left",
+                        arrowprops=dict(facecolor="black", shrink=0.05),
+                    )
+                    # plt.annotate(
+                    #     label,  # this is the text
+                    #     (
+                    #         points["recall"] + displacement,
+                    #         np.log10(points["nb_candidate"]) + displacement,
+                    #     ),
+                    #     textcoords="offset points",
+                    #     xytext=(0, 10),
+                    #     ha="center",
+                    #     rotation=60,
+                    # )  # horizontal alignment can be left, right or center
+                    displacement_x += 0.015
+                    displacement_y += 0.01
+                for _, points in best_candidates_2.iterrows():
+                    label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
+
+                    plt.annotate(
+                        label,  # this is the text
+                        (
+                            points["recall"],
+                            np.log10(points["nb_candidate"]),
+                        ),  # these are the coordinates to position the label
+                        textcoords="offset points",  # how to position the text
+                        xytext=(0, 10),  # distance from text to points (x,y)
+                        ha="center",
+                        rotation=60,
+                    )  # horizontal alignment can be left, right or center
+                plt.savefig(
+                    self.save_dir_path + "network/evaluateNet/" + "recalllog10_plot.png"
+                )
+            else:
+                # ax = plt.axes()
+                # print(evaluateNetScore["recall"])
+                # ax.scatter(
+                #     evaluateNetScore["recall"],
+                #     evaluateNetScore["nb_candidate"],
+                #     c="g",
+                #     marker="o",
+                #     s=2,
+                # )
+                # ax.set_title("Determination of GRN size effect on recall")
+                # ax.set_ylabel("Number of GRN node")
+                # ax.set_xlabel("recall")
+                ax = plt.axes()
+                ax.scatter(
+                    evaluateNetScore["recall"],
+                    evaluateNetScore["nb_candidate"],
+                    c="g",
+                    marker="o",
+                    s=2,
+                )
+                ax.set_title("Determination of GRN size effect on recall")
+                ax.set_ylabel("Number of GRN node")
+                ax.set_xlabel("Recall")
+
+                plt.scatter(
+                    best_candidates_1["recall"],
+                    best_candidates_1["nb_candidate"],
+                    color="red",
+                )
+                plt.scatter(
+                    best_candidates_2["recall"],
+                    best_candidates_2["nb_candidate"],
+                    color="red",
+                )
+                displacement_x = 0.00
+                displacement_y = 0.00
+                for index, points in best_candidates_1.iterrows():
+                    label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
+
+                    plt.annotate(
+                        label,
+                        (points["recall"], points["nb_candidate"]),
+                        xycoords="data",
+                        xytext=(
+                            0.5 + displacement_y,
+                            np.log(1.2) + displacement_x,
+                        ),
+                        textcoords="axes fraction",
+                        va="top",
+                        ha="left",
+                        arrowprops=dict(facecolor="black", shrink=0.05),
+                    )
+                    # plt.annotate(
+                    #     label,  # this is the text
+                    #     (
+                    #         points["recall"] + displacement,
+                    #         np.log10(points["nb_candidate"]) + displacement,
+                    #     ),
+                    #     textcoords="offset points",
+                    #     xytext=(0, 10),
+                    #     ha="center",
+                    #     rotation=60,
+                    # )  # horizontal alignment can be left, right or center
+                    displacement_x += 0.015
+                    displacement_y += 0.01
+                for _, points in best_candidates_2.iterrows():
+                    label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
+
+                    plt.annotate(
+                        label,  # this is the text
+                        (
+                            points["recall"],
+                            np.log10(points["nb_candidate"]),
+                        ),  # these are the coordinates to position the label
+                        textcoords="offset points",  # how to position the text
+                        xytext=(0, 10),  # distance from text to points (x,y)
+                        ha="center",
+                        rotation=60,
+                    )  # horizontal alignment can be left, right or center
+                plt.savefig(
+                    self.save_dir_path + "network/evaluateNet/" + "recall_plot.png"
+                )
+        else:
             ax = plt.axes()
             ax.scatter(
                 evaluateNetScore["recall"],
-                np.log10(evaluateNetScore["nb_candidate"]),
+                evaluateNetScore["nb_candidate"],
                 c="g",
                 marker="o",
                 s=2,
@@ -475,76 +630,18 @@ class GRN:
 
             plt.scatter(
                 best_candidates_1["recall"],
-                np.log10(best_candidates_1["nb_candidate"]),
+                best_candidates_1["nb_candidate"],
                 color="red",
             )
             plt.scatter(
                 best_candidates_2["recall"],
-                np.log10(best_candidates_2["nb_candidate"]),
+                best_candidates_2["nb_candidate"],
                 color="red",
             )
-            displacement_x = 0.00
-            displacement_y = 0.00
-            for index, points in best_candidates_1.iterrows():
-                label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
-
-                plt.annotate(
-                    label,
-                    (points["recall"], np.log10(points["nb_candidate"])),
-                    xycoords="data",
-                    xytext=(
-                        0.5 + displacement_y,
-                        np.log(2) + displacement_x,
-                    ),
-                    textcoords="axes fraction",
-                    va="top",
-                    ha="left",
-                    arrowprops=dict(facecolor="black", shrink=0.05),
-                )
-                # plt.annotate(
-                #     label,  # this is the text
-                #     (
-                #         points["recall"] + displacement,
-                #         np.log10(points["nb_candidate"]) + displacement,
-                #     ),
-                #     textcoords="offset points",
-                #     xytext=(0, 10),
-                #     ha="center",
-                #     rotation=60,
-                # )  # horizontal alignment can be left, right or center
-                displacement_x += 0.015
-                displacement_y += 0.01
-            for _, points in best_candidates_2.iterrows():
-                label = f"({points['pval']},{points['model_score']},{points['perc_zero_tot']},{points['thres_criterion']})"
-
-                plt.annotate(
-                    label,  # this is the text
-                    (
-                        points["recall"],
-                        np.log10(points["nb_candidate"]),
-                    ),  # these are the coordinates to position the label
-                    textcoords="offset points",  # how to position the text
-                    xytext=(0, 10),  # distance from text to points (x,y)
-                    ha="center",
-                    rotation=60,
-                )  # horizontal alignment can be left, right or center
+            plt.tight_layout()
             plt.savefig(
-                self.save_dir_path + "network/evaluateNet/" + "recalllog10_plot.png"
+                self.save_dir_path + "network/evaluateNet/" + "recall_plot_no_arrow.png"
             )
-        else:
-            ax = plt.axes()
-            print(evaluateNetScore["recall"])
-            ax.scatter(
-                evaluateNetScore["recall"],
-                evaluateNetScore["nb_candidate"],
-                c="g",
-                marker="o",
-                s=2,
-            )
-            ax.set_title("Determination of GRN size effect on recall")
-            ax.set_ylabel("Number of GRN node")
-            ax.set_xlabel("recall")
-            plt.savefig(self.save_dir_path + "network/evaluateNet/" + "recall_plot.png")
 
     def plot_pval_curves(self):
         evaluateNetScore = pd.read_table(

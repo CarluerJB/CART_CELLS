@@ -17,17 +17,19 @@ class DENDROGRAM_TW:
         self.X_POS_PER_PT = 1
         self.Y_POS_PER_PT = 1
         self.DPI = 960
-        if ge_matrix_path!=None:
+        if ge_matrix_path != None:
             self.path_output = self.save_dir_path + "network/tw_dendro_gc.png"
             self.ge_matrix_path = ge_matrix_path
             self.tf_list_path = TF_list_path
         else:
-            self.path_output = self.save_dir_path + "network/source_clust_to_GO_clust.png"
-        if TF_list_path!=None:
+            self.path_output = (
+                self.save_dir_path + "network/source_clust_to_GO_clust.png"
+            )
+        if TF_list_path != None:
             self.tf_list_path = TF_list_path
         self.path_list_src = self.save_dir_path + "network/resume_TF_target.txt"
         self.path_GO_src = self.save_dir_path + "network/association_study/"
-        
+
         self.parameter_file_path = "PARAMETERS/PARAM_CLUST_DEFAULT.txt"
         self.load_parameter_file()
         self.show_parameter()
@@ -94,7 +96,12 @@ class DENDROGRAM_TW:
                 self.source_go_term_df.index
             )
             self.source_go_term_df = pd.concat(
-                [self.source_go_term_df, go_association.loc[missing_index,]]
+                [
+                    self.source_go_term_df,
+                    go_association.loc[
+                        missing_index,
+                    ],
+                ]
             )
             self.source_go_term_df.loc[
                 already_present_index, elem
@@ -121,10 +128,10 @@ class DENDROGRAM_TW:
             self.ge_matrix = pd.read_hdf(self.ge_matrix_path)
         else:
             raise NotImplementedError
-    
+
     def load_tf_list(self):
         self.tf_list = pd.read_table(self.tf_list_path, header=None)[0].to_list()
-    
+
     def extract_TF_from_GE_matrix(self):
         self.GE_TF_matrix = self.ge_matrix.loc[self.tf_list].transpose()
 
@@ -241,42 +248,80 @@ class DENDROGRAM_TW:
         plt.savefig(self.path_output, dpi=self.DPI)
 
     def plot_clustering_TW(self, log10=True):
-        sys.stdout.write(
-            "\r GENERATING TW Clustering "
-        )
+        sys.stdout.write("\r GENERATING TW Clustering ")
         sys.stdout.flush()
         if log10:
             self.GE_TF_matrix = self.GE_TF_matrix.apply(np.log10, axis=1)
             self.GE_TF_matrix.replace(-np.inf, 0, inplace=True)
         print("1")
-        model = AgglomerativeClustering(distance_threshold=0, n_clusters=None, linkage='ward')
+        model = AgglomerativeClustering(
+            distance_threshold=0, n_clusters=None, linkage="ward"
+        )
         model = model.fit(self.GE_TF_matrix)
         print("2")
-        model2 = AgglomerativeClustering(distance_threshold=0, n_clusters=None, linkage='ward')
+        model2 = AgglomerativeClustering(
+            distance_threshold=0, n_clusters=None, linkage="ward"
+        )
         model2 = model2.fit(self.GE_TF_matrix.transpose())
         print("3")
         vmin = np.min(self.GE_TF_matrix.to_numpy())
         vmax = np.max(self.GE_TF_matrix.to_numpy())
-        
-        
-        fig, axs = plt.subplots(2, 2, figsize=(8, 5.6), gridspec_kw={'width_ratios': [12, 1], 'height_ratios': [12, 2]})
+
+        fig, axs = plt.subplots(
+            2,
+            2,
+            figsize=(8, 5.6),
+            gridspec_kw={"width_ratios": [12, 1], "height_ratios": [12, 2]},
+        )
         print("4")
-        a=plot_dendrogram(model, truncate_mode="level", p=len(self.GE_TF_matrix.index), get_leaves=True, ax=axs[0][1], no_labels=True, labels=self.GE_TF_matrix.index.to_numpy(), orientation="right", leaf_font_size=2.7)
-        a2=plot_dendrogram(model2, truncate_mode="level", p=len(self.GE_TF_matrix.columns), get_leaves=True, ax=axs[1][0], no_labels=True, labels=self.GE_TF_matrix.columns.to_numpy(), orientation="bottom", leaf_font_size=2.7)
-        img = axs[0][0].imshow(self.GE_TF_matrix.iloc[a['leaves'][::-1],a2['leaves'][::]].to_numpy(), cmap='coolwarm', interpolation='none', aspect='auto', vmin=vmin, vmax=vmax)
+        a = plot_dendrogram(
+            model,
+            truncate_mode="level",
+            p=len(self.GE_TF_matrix.index),
+            get_leaves=True,
+            ax=axs[0][1],
+            no_labels=True,
+            labels=self.GE_TF_matrix.index.to_numpy(),
+            orientation="right",
+            leaf_font_size=2.7,
+        )
+        a2 = plot_dendrogram(
+            model2,
+            truncate_mode="level",
+            p=len(self.GE_TF_matrix.columns),
+            get_leaves=True,
+            ax=axs[1][0],
+            no_labels=True,
+            labels=self.GE_TF_matrix.columns.to_numpy(),
+            orientation="bottom",
+            leaf_font_size=2.7,
+        )
+        img = axs[0][0].imshow(
+            self.GE_TF_matrix.iloc[a["leaves"][::-1], a2["leaves"][::]].to_numpy(),
+            cmap="coolwarm",
+            interpolation="none",
+            aspect="auto",
+            vmin=vmin,
+            vmax=vmax,
+        )
         print("5")
         axs[0][0].get_yaxis().set_visible(False)
         axs[0][0].get_xaxis().set_visible(False)
         axs[0][1].get_xaxis().set_visible(False)
         axs[1][0].get_xaxis().set_visible(False)
-        ax1p=axs[0][1].twinx()
+        ax1p = axs[0][1].twinx()
         ax1p.get_yaxis().set_visible(True)
-        ax1p.set_yticks([*np.arange(0.5, len(self.GE_TF_matrix.index)+0.5), 23], minor=False)
-        ax1p.set_yticklabels([*self.GE_TF_matrix.index.to_numpy()[a['leaves']], ''], fontsize=5)
+        ax1p.set_yticks(
+            [*np.arange(0.5, len(self.GE_TF_matrix.index) + 0.5), 23], minor=False
+        )
+        ax1p.set_yticklabels(
+            [*self.GE_TF_matrix.index.to_numpy()[a["leaves"]], ""], fontsize=5
+        )
         axs[1][1].set_axis_off()
-        
+
         plt.tight_layout()
         plt.savefig(self.path_output, dpi=self.DPI)
+
 
 def plot_dendrogram(model, **kwargs):
     counts = np.zeros(model.children_.shape[0])
