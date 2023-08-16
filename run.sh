@@ -17,5 +17,5 @@ tf_agi_corr="/media/carluerj/Data/These/DATA/gene_regulator_network/Laura_data/T
 # python GenerateCartTree.py $data $out_data $tf_list_path $analysis_type
 # $nitrate_list_path
 # python GenerateGoGeneDendro.py $out_data
-python GenerateGRN.py $out_data
-# python FindOptParam.py $out_data
+# python GenerateGRN.py $out_data
+python FindOptParam.py $out_data

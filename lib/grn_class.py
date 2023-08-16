@@ -442,19 +442,21 @@ class GRN:
         plt.scatter(evaluateNetScore["fscore"], evaluateNetScore["nb_candidate"])
         plt.savefig(self.save_dir_path + "network/evaluateNet/" + "fscore_plot.png")
 
-    def plot_recall_curves(self, log10=False, arrow=False):
+    def plot_recall_curves(
+        self, log10=False, arrow=False, metric="recall", net_dir="network"
+    ):
         evaluateNetScore = pd.read_table(
-            self.save_dir_path + "network/evaluateNet/" + self.eval_score_filename,
+            self.save_dir_path + net_dir + "/evaluateNet/" + self.eval_score_filename,
             sep=",",
             header=0,
         )
 
         best_candidates_1 = evaluateNetScore[
-            (evaluateNetScore["recall"] >= 0.072)
+            (evaluateNetScore[metric] >= 0.072)
             & (np.log10(evaluateNetScore["nb_candidate"]) >= 2.0)
         ]
         best_candidates_2 = evaluateNetScore[
-            (evaluateNetScore["recall"] >= 0.30)
+            (evaluateNetScore[metric] >= 0.30)
             & (np.log10(evaluateNetScore["nb_candidate"]) >= 0.8)
         ]
         print(best_candidates_1)
@@ -465,7 +467,7 @@ class GRN:
 
                 ax = plt.axes()
                 ax.scatter(
-                    evaluateNetScore["recall"],
+                    evaluateNetScore[metric],
                     np.log10(evaluateNetScore["nb_candidate"]),
                     c="g",
                     marker="o",
@@ -473,15 +475,15 @@ class GRN:
                 )
                 ax.set_title("Determination of GRN size effect on recall")
                 ax.set_ylabel("Number of GRN node")
-                ax.set_xlabel("Recall")
+                ax.set_xlabel(metric.capitalize())
 
                 plt.scatter(
-                    best_candidates_1["recall"],
+                    best_candidates_1[metric],
                     np.log10(best_candidates_1["nb_candidate"]),
                     color="red",
                 )
                 plt.scatter(
-                    best_candidates_2["recall"],
+                    best_candidates_2[metric],
                     np.log10(best_candidates_2["nb_candidate"]),
                     color="red",
                 )
@@ -492,7 +494,7 @@ class GRN:
 
                     plt.annotate(
                         label,
-                        (points["recall"], np.log10(points["nb_candidate"])),
+                        (points[metric], np.log10(points["nb_candidate"])),
                         xycoords="data",
                         xytext=(
                             0.5 + displacement_y,
@@ -522,7 +524,7 @@ class GRN:
                     plt.annotate(
                         label,  # this is the text
                         (
-                            points["recall"],
+                            points[metric],
                             np.log10(points["nb_candidate"]),
                         ),  # these are the coordinates to position the label
                         textcoords="offset points",  # how to position the text
@@ -531,7 +533,11 @@ class GRN:
                         rotation=60,
                     )  # horizontal alignment can be left, right or center
                 plt.savefig(
-                    self.save_dir_path + "network/evaluateNet/" + "recalllog10_plot.png"
+                    self.save_dir_path
+                    + net_dir
+                    + "/evaluateNet/"
+                    + metric
+                    + "log10_plot.png"
                 )
             else:
                 # ax = plt.axes()
@@ -548,7 +554,7 @@ class GRN:
                 # ax.set_xlabel("recall")
                 ax = plt.axes()
                 ax.scatter(
-                    evaluateNetScore["recall"],
+                    evaluateNetScore[metric],
                     evaluateNetScore["nb_candidate"],
                     c="g",
                     marker="o",
@@ -556,15 +562,15 @@ class GRN:
                 )
                 ax.set_title("Determination of GRN size effect on recall")
                 ax.set_ylabel("Number of GRN node")
-                ax.set_xlabel("Recall")
+                ax.set_xlabel(metric.capitalize())
 
                 plt.scatter(
-                    best_candidates_1["recall"],
+                    best_candidates_1[metric],
                     best_candidates_1["nb_candidate"],
                     color="red",
                 )
                 plt.scatter(
-                    best_candidates_2["recall"],
+                    best_candidates_2[metric],
                     best_candidates_2["nb_candidate"],
                     color="red",
                 )
@@ -575,7 +581,7 @@ class GRN:
 
                     plt.annotate(
                         label,
-                        (points["recall"], points["nb_candidate"]),
+                        (points[metric], points["nb_candidate"]),
                         xycoords="data",
                         xytext=(
                             0.5 + displacement_y,
@@ -605,7 +611,7 @@ class GRN:
                     plt.annotate(
                         label,  # this is the text
                         (
-                            points["recall"],
+                            points[metric],
                             np.log10(points["nb_candidate"]),
                         ),  # these are the coordinates to position the label
                         textcoords="offset points",  # how to position the text
@@ -614,12 +620,16 @@ class GRN:
                         rotation=60,
                     )  # horizontal alignment can be left, right or center
                 plt.savefig(
-                    self.save_dir_path + "network/evaluateNet/" + "recall_plot.png"
+                    self.save_dir_path
+                    + net_dir
+                    + "/evaluateNet/"
+                    + metric
+                    + "_plot.png"
                 )
         else:
             ax = plt.axes()
             ax.scatter(
-                evaluateNetScore["recall"],
+                evaluateNetScore[metric],
                 evaluateNetScore["nb_candidate"],
                 c="g",
                 marker="o",
@@ -627,21 +637,25 @@ class GRN:
             )
             ax.set_title("Determination of GRN size effect on recall")
             ax.set_ylabel("Number of GRN node")
-            ax.set_xlabel("Recall")
+            ax.set_xlabel(metric.capitalize())
 
             plt.scatter(
-                best_candidates_1["recall"],
+                best_candidates_1[metric],
                 best_candidates_1["nb_candidate"],
                 color="red",
             )
             plt.scatter(
-                best_candidates_2["recall"],
+                best_candidates_2[metric],
                 best_candidates_2["nb_candidate"],
                 color="red",
             )
             plt.tight_layout()
             plt.savefig(
-                self.save_dir_path + "network/evaluateNet/" + "recall_plot_no_arrow.png"
+                self.save_dir_path
+                + net_dir
+                + "/evaluateNet/"
+                + metric
+                + "_plot_no_arrow.png"
             )
 
     def plot_pval_curves(self):
@@ -752,6 +766,7 @@ class GRN:
         perc_zero_tot=None,
         model_score=None,
         thres_criterion=None,
+        TF_indicator="",  # or "TF_"
     ):
         if filtered_table == None:
             filtered_table = pd.read_table(
@@ -773,16 +788,19 @@ class GRN:
             self.create_node([target["AGI"]], "GENE")
 
             # SIMPLE
-            self.create_node(["TF_" + target["TF1"]], "TF")
+            self.create_node([TF_indicator + target["TF1"]], "TF")
             self.create_edge(
-                target["AGI"], "TF_" + target["TF1"], score=target["gini_score_0"]
+                target["AGI"],
+                TF_indicator + target["TF1"],
+                score=target["gini_score_0"],
             )
 
             # INTER 1
             if target["gini_score_1"] != None:
                 if target["gini_score_1"] < self.THRES_CRITERION:
                     TF1_TF2_inter_node = self.create_node(
-                        ["TF_" + target["TF1"], "TF_" + target["TF2"]], "TF_INTER"
+                        [TF_indicator + target["TF1"], TF_indicator + target["TF2"]],
+                        "TF_INTER",
                     )
                     self.create_edge(
                         target["AGI"],
@@ -793,7 +811,8 @@ class GRN:
             if target["gini_score_2"] != None:
                 if target["gini_score_2"] < self.THRES_CRITERION:
                     TF1_TF3_inter_node = self.create_node(
-                        ["TF_" + target["TF1"], "TF_" + target["TF3"]], "TF_INTER"
+                        [TF_indicator + target["TF1"], TF_indicator + target["TF3"]],
+                        "TF_INTER",
                     )
                     self.create_edge(
                         target["AGI"],
@@ -958,7 +977,7 @@ class GRN:
         py4.delete_network(title)
 
     def save_graph_to_table(
-        self, with_resume=True, save_path=None, inter_behavior="drop"
+        self, with_resume=True, save_path=None, inter_behavior="drop", TF_indicator=""
     ):
         if save_path == None:
             path_edge_table = self.path_edge_table
@@ -974,6 +993,42 @@ class GRN:
             path_resume_table = save_path + "/" + self.resume_table_filename
 
         df, full_node, node_degree = self.to_tables()
+        if TF_indicator != "":
+            df["source_ori"] = df["source"]
+            df["target_ori"] = df["target"]
+            # Put TF in from column
+            df.loc[
+                df[
+                    (df["target"].str.match(r"^" + TF_indicator))
+                    & (df["source"].str.match(r"^AT"))
+                ].index,
+                "source",
+            ] = df.loc[
+                df[
+                    (df["target"].str.match(r"^" + TF_indicator))
+                    & (df["source"].str.match(r"^AT"))
+                ].index
+            ][
+                "target"
+            ]
+            # and TG in to column
+            df.loc[
+                df[
+                    (df["target_ori"].str.match(r"^" + TF_indicator))
+                    & (df["source_ori"].str.match(r"^AT"))
+                ].index,
+                "target",
+            ] = df.loc[
+                df[
+                    (df["target_ori"].str.match(r"^" + TF_indicator))
+                    & (df["source_ori"].str.match(r"^AT"))
+                ].index
+            ][
+                "source_ori"
+            ]
+            df.drop(["source_ori", "target_ori"], axis=1, inplace=True)
+
+            df["source"] = df["source"].str.replace(TF_indicator, "")
         df.to_csv(path_edge_table, sep=",", header=True, index=False)
         full_node.to_csv(path_node_table, sep=",", header=True, index=False)
         df.drop(
@@ -1018,6 +1073,7 @@ class GRN:
         else:
             raise NotImplementedError("Unknow behavior to adopt for interaction")
         df.drop(columns=["_to_comp"], inplace=True)
+
         df.replace(self.LIST_TF, inplace=True)
 
         df.to_csv(path_edge_simplified_table, sep=",", header=True, index=False)
@@ -1028,6 +1084,38 @@ class GRN:
                 header=["degree"],
                 index_label="source",
             )
+
+    def resume_founded_edges_by_val(self, save_path, which="max"):
+        eval_table = pd.read_table(save_path + self.eval_filename, header=0, sep=",")
+        if which == "max":
+            tg_filename = eval_table.iloc[eval_table["nb_candidate"].idxmax()][
+                "datapath"
+            ]
+            print(tg_filename)
+            found_edges = pd.read_table(
+                tg_filename + "/found_edges.csv", header=0, sep=","
+            )
+            print(found_edges)
+            print(
+                found_edges["type"].value_counts().index,
+                found_edges["type"].value_counts().values,
+            )
+            fig, ax = plt.subplots()
+            ax.bar(
+                x=found_edges["type"].value_counts().index,
+                height=found_edges["type"].value_counts().values,
+            )
+            # plot = found_edges["type"].value_counts().plot.barh()
+            addlabels(
+                found_edges["type"].value_counts().index,
+                found_edges["type"].value_counts().values,
+            )
+            plt.xticks(rotation=0, horizontalalignment="center")
+            plt.tight_layout()
+            plt.savefig(save_path + "resume_max_net_founded_edge.png")
+            print(save_path + "resume_max_net_founded_edge.png")
+        else:
+            raise NotImplementedError("Unknow behavior to adopt for which option")
 
     def save_target_genes(
         self, sources, drop_inter=False
@@ -1206,3 +1294,8 @@ def get_color_gradient(c1, c2, n):
         "#" + "".join([format(int(round(val * 255)), "02x") for val in item])
         for item in rgb_colors
     ]
+
+
+def addlabels(x, y):
+    for i in range(len(x)):
+        plt.text(i, y[i] // 2, y[i], ha="center")
