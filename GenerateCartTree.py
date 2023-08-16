@@ -6,9 +6,9 @@ import argparse
 
 # PARAMETERS
 parser = argparse.ArgumentParser(
-    prog="GenerateCartTree",
+    prog="Generate Cart Tree",
     description="This programm is meant to generate CART TREE for each gene against all TF",
-    epilog="Design by Jean-Baptiste CARLUER under the supervision of Gabriel Krouk and André Mas",
+    epilog="Realized by Jean-Baptiste Carluer during his PhD in bioinformatics at the University of Montpellier under the supervision of Gabriel Krouk and André Mas",
 )
 parser.add_argument(
     "-d",
