@@ -1,3 +1,14 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES: This programm is meant to generate a clustering +
+#   dendrogram on gene and cells
+# ===============================
+# Change History:
+#
+# # =================================
+
 from lib.cart_class import CART_TREE
 from lib.grn_class import GRN
 from lib.dendrogram_tw_class import DENDROGRAM_TW
@@ -34,11 +45,8 @@ data = args.data_path
 out_data = args.out_path
 tf_list_path = args.tf_list_path
 
-
-# data = sys.argv[1]
-# out_data = sys.argv[2]
-# tf_list_path = sys.argv[3]
-
+# Generate Dendrogram based on gene expression data,
+# the GRN will focus only on TF
 clust = DENDROGRAM_TW(out_data, ge_matrix_path=data, TF_list_path=tf_list_path)
 clust.load_GE_matrix()
 clust.load_tf_list()

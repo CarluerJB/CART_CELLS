@@ -16,4 +16,4 @@ out_data="/media/carluerj/Data/These/Results/GRN_inference/Lauras_results/Full_c
 tf_list_path="/media/data/home/carluerjb/Documents/data/data_gene_regulatory_network/Lauras_data/GSE152766_Root_Atlas_TF_list.txt"
 analysis_type="genes"
 
-python FindOptParam.py $out_data
+python FindOptParam.py -o $out_data

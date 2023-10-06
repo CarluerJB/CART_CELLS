@@ -1,3 +1,13 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES:
+# ===============================
+# Change History:
+#
+# # =================================
+
 import pandas as pd
 import numpy as np
 from sklearn.cluster import AgglomerativeClustering
@@ -8,15 +18,7 @@ import sys
 
 class DENDROGRAM_TW:
     def __init__(self, save_dir_path, ge_matrix_path=None, TF_list_path=None):
-        self.GO_TERM_FMT = "BP"
-        self.PVAL = (
-            "p_bonferroni"  # p_uncorrected, p_bonferroni, p_sidak, p_holm, p_fdr_bh
-        )
-        self.PVAL_THRES = 0.001
         self.save_dir_path = save_dir_path
-        self.X_POS_PER_PT = 1
-        self.Y_POS_PER_PT = 1
-        self.DPI = 960
         if ge_matrix_path != None:
             self.path_output = self.save_dir_path + "network/tw_dendro_gc.png"
             self.ge_matrix_path = ge_matrix_path
@@ -31,10 +33,20 @@ class DENDROGRAM_TW:
         self.path_GO_src = self.save_dir_path + "network/association_study/"
 
         self.parameter_file_path = "PARAMETERS/PARAM_CLUST_DEFAULT.txt"
-        self.load_parameter_file()
+        self.load_and_init_parameter()
         self.show_parameter()
 
-    def load_parameter_file(self):
+    ## PARAMETERS METHODS
+    # Init default parameters and load new parameters if user define some
+    def load_and_init_parameter(self):
+        self.GO_TERM_FMT = "BP"
+        self.PVAL = (
+            "p_bonferroni"  # p_uncorrected, p_bonferroni, p_sidak, p_holm, p_fdr_bh
+        )
+        self.PVAL_THRES = 0.001
+        self.X_POS_PER_PT = 1
+        self.Y_POS_PER_PT = 1
+        self.DPI = 960
         with open(self.parameter_file_path, "r") as parameter_file:
             for line in parameter_file:
                 if ("#" in line) or (line == "\n"):
@@ -63,6 +75,8 @@ class DENDROGRAM_TW:
         print("\t\tDPI : ", self.DPI)
         print("\n")
 
+    ## DATA LOADING METHODS
+    # Load output of GRN.run_find_enrichment
     def load_GO_data(self):
         list_src = pd.read_table(self.path_list_src, sep=",", header=0)
         self.source_go_term_df = pd.DataFrame(
@@ -120,6 +134,8 @@ class DENDROGRAM_TW:
             inplace=True,
         )
 
+    # Load Gene expression matrix
+    # txt and h5 formats are supported
     def load_GE_matrix(self):
         data_src_type = self.ge_matrix_path.split(".")[1]
         if data_src_type == "txt":
@@ -129,12 +145,17 @@ class DENDROGRAM_TW:
         else:
             raise NotImplementedError
 
+    # Load the list of TF which can be found in GE_matrix
     def load_tf_list(self):
         self.tf_list = pd.read_table(self.tf_list_path, header=None)[0].to_list()
 
+    ## TABLE MANIPULATION METHODS
+    # Extract TF (list which come from load_tf_list) from GE matrix
     def extract_TF_from_GE_matrix(self):
         self.GE_TF_matrix = self.ge_matrix.loc[self.tf_list].transpose()
 
+    ## PLOTTING METHODS
+    # PLOT TF vs GO term of AGI linked to TF
     def plot_clustering_GOTW(self):
         model = AgglomerativeClustering(
             distance_threshold=0, n_clusters=None, linkage="ward"
@@ -247,6 +268,7 @@ class DENDROGRAM_TW:
         plt.tight_layout()
         plt.savefig(self.path_output, dpi=self.DPI)
 
+    # PLOT TF vs Cells using heatmap and dendrograms
     def plot_clustering_TW(self, log10=True):
         sys.stdout.write("\r GENERATING TW Clustering ")
         sys.stdout.flush()
@@ -323,6 +345,7 @@ class DENDROGRAM_TW:
         plt.savefig(self.path_output, dpi=self.DPI)
 
 
+# Plotting function for dendrogram
 def plot_dendrogram(model, **kwargs):
     counts = np.zeros(model.children_.shape[0])
     n_samples = len(model.labels_)

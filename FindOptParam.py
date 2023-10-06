@@ -1,3 +1,16 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES: This programm is meant to generate GRN for each
+#   default filter, to evaluate them and then for the bigger GRN to
+#   generate a summary of validated interactions sources. The program
+#   GenerateCartTree.py need to be run before running this one.
+# ===============================
+# Change History:
+#
+# # =================================
+
 from lib.grn_class import GRN
 import sys
 import argparse
@@ -16,7 +29,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 out_data = args.out_path
-# out_data = sys.argv[1]
 
 # These are filter to test, each combination is tested
 pval_list = [50, 40, 30, 20, 15, 10, 8, 5, 3, 2]
@@ -25,15 +37,17 @@ perc_zero_tot_list = [0.5, 0.4, 0.3, 0.2, 0.1]
 thres_criterion_list = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 G = GRN(out_data)
+
 # Allow to create the file with header
 # Comment this line to keep writing in a file
 # without deleting previous work
 G.init_candidate_info_file()
+
 for pval in pval_list:
     for model_score in model_score_list:
         for perc_zero_tot in perc_zero_tot_list:
             for thres_criterion in thres_criterion_list:
-                nb_candidate = G.create_GRN(
+                nb_candidate, nb_nodes, nb_edges = G.create_GRN(
                     pval=pval,
                     perc_zero_tot=perc_zero_tot,
                     model_score=model_score,
@@ -70,6 +84,8 @@ for pval in pval_list:
                         model_score=str(model_score),
                         thres_criterion=str(thres_criterion),
                         nb_candidate=str(nb_candidate),
+                        nb_nodes=str(nb_nodes),
+                        nb_edges=str(nb_edges),
                         datapath=save_path,
                     )
                 else:
@@ -80,6 +96,8 @@ for pval in pval_list:
                         model_score=str(model_score),
                         thres_criterion=str(thres_criterion),
                         nb_candidate="0",
+                        nb_nodes="0",
+                        nb_edges="0",
                         datapath="None",
                     )
                 G.delete_GRN()

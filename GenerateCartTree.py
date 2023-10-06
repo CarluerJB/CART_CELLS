@@ -1,3 +1,14 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES: This programm is meant to generate CART TREE for each gene
+#   against all TF
+# ===============================
+# Change History:
+#
+# # =================================
+
 from lib.cart_class import CART_TREE
 from lib.grn_class import GRN
 from lib.dendrogram_tw_class import DENDROGRAM_TW
@@ -47,17 +58,6 @@ tf_list_path = args.tf_list_path
 analysis_type = args.analysis_type
 target_sub_list_path = args.target_list_path
 
-
-# data = sys.argv[1]
-# out_data = sys.argv[2]
-# tf_list_path = sys.argv[3]
-# analysis_type = sys.argv[4]
-# target_sub_list_path = None
-# if len(sys.argv) > 5:
-#     target_sub_list_path = sys.argv[5]
-# else:
-#     target_sub_list_path = None
-
 # INIT CART TREE CLASS
 cart = CART_TREE(
     data,
@@ -71,15 +71,24 @@ cart.show_parameter()
 cart.create_out_dir()
 cart.load_GE_matrix()
 cart.load_tf_list()
-sub_target_list = cart.Y_target_list.tolist()
+
+# Define target list
+sub_target_list = cart.Y_target_list
 # TO USE TO RUN THE COMPUTATION FROM A CERTAIN POINT
 # sub_target_list = cart.Y_target_list.tolist()[(cart.Y_target_list.tolist().index("AT5G63140")+1):]
+
 for target in sub_target_list:
+    # Generate CART for the current target
     cart.generate_CART_tree(target)
+    # Generate another CART model and evaluate it
     cart.eval_model(target)
+    # Save CART results as txt tree and pdf
     cart.save_CART_tree(target)
+    # Extract CART TF and TG and resume information
     cart.compile_cart_results(target, save=True, save_in_mem=False)
     cart.save_cartlu_plot(target)
+# Once each compiled result are done and if save in mem is set to False
 cart.load_compiled_results(filename="compiled_table_a.csv")
+# Apply standard filter
 cart.filter_cart_results()
 cart.save_filtered_results()

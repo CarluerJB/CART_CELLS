@@ -1,3 +1,13 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES:
+# ===============================
+# Change History:
+#                  
+# # =================================
+
 source("NetworkEvaluation/evaluateNetwork.R")
 
 args = commandArgs(trailingOnly=TRUE)
@@ -26,7 +36,7 @@ model_eval$fscore = NaN
 for(i in 1:nrow(model_eval)) {
     print(paste0("Working on ", i))
     row <- model_eval[i,]
-    if(row$nb_candidate>0){
+    if(row$nb_nodes>0){
         net = read.table(paste0(row$datapath, "/", model_edge_filename), sep=",", header=TRUE)    
         load(file=validated_edges_path)
         # results = evaluate_network(net, subset_validated_edges=validated_edges, input_genes=list_all_gene, input_tfs=list_all_tf)

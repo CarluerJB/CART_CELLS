@@ -1,3 +1,12 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES: Setup and download evertything to be able to run the pipeline
+# ===============================
+# Change History:
+#                  
+# # =================================
 
 PS3='In order to analyse GO term in your data, you must download the most current GO, Please enter your choice: '
 options=("GO" "GO Slim" "Quit")

@@ -1,3 +1,13 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES:
+# ===============================
+# Change History:
+#
+# # =================================
+
 from cmath import log
 from codecs import ignore_errors
 from logging import raiseExceptions
@@ -27,17 +37,6 @@ class GRN:
         self.node_size = []
         self.node_color = []
         self.node_style = []
-        # self.node_table_filename = "node_table.csv"
-        # self.edge_table_filename = "edge_table.csv"
-        # self.edge_simplified_table_filename = "edge_simplified_table.csv"
-        # self.resume_table_filename = "resume_table.csv"
-        # self.tf_target_filename = "resume_TF_target.txt"
-        # self.tf_all_list_filename = "list_all_tf.txt"
-        # self.gene_all_list_filename = "list_all_gene.txt"
-        # self.eval_score_filename = "nb_candidate_info_score.txt"
-        # self.eval_filename = "nb_candidate_info.txt"
-        # self.eval_score_plot_filename = "nb_candidate_info_score.txt"
-        # self.eval_plot_filename = "param_eval.png"
 
         self.save_dir_path = out_data
         self.parameter_file_path = "PARAMETERS/PARAM_GRN_DEFAULT.txt"
@@ -59,22 +58,6 @@ class GRN:
         )
         self.path_src_target_dir = self.save_dir_path + "network/genes_study/"
 
-        # self.TF_SHAPE = "ELLIPSE"
-        # self.GENE_SHAPE = "ROUND_RECTANGLE"
-        # self.TF_INTER_SHAPE = "TRIANGLE"
-        # self.TF_INTER_LINE_TYPE = "DASHED"
-        # self.DEFAULT_LINE_TYPE = "FULL"
-        # self.TF_NODE_SIZE = 10
-        # self.GENE_NODE_SIZE = 10
-        # self.TF_INTER_NODE_SIZE = 10
-        # self.TF_NODE_COLOR = "red"
-        # self.GENE_NODE_COLOR = "blue"
-        # self.TF_INTER_NODE_COLOR = "green"
-        # self.DIR_EDGE_SIZE = 10
-        # self.UNDIR_EDGE_SIZE = 10
-        # self.DIR_EDGE_COLOR = "red"
-        # self.UNDIR_EDGE_COLOR = "blue"
-        # self.THRES_CRITERION = 1.0
         if TF_AGI_CORR == None:
             self.LIST_TF = {  # TEMPORARY FIND A SMART WAY TO REMOVE IT FROM CODE !
                 "BEE2": "AT4G36540",
@@ -281,7 +264,7 @@ class GRN:
             save_path = self.save_dir_path + "network/evaluateNet/"
         with open(save_path + self.eval_filename, "w") as file:
             file.write(
-                "pval,perc_zero_tot,model_score,thres_criterion,nb_candidate,datapath\n"
+                "pval,perc_zero_tot,model_score,thres_criterion,nb_gene,nb_nodes,nb_edges,datapath\n"
             )
 
     def analyse_eval_PCA(self):
@@ -739,7 +722,9 @@ class GRN:
         perc_zero_tot=None,
         model_score=None,
         thres_criterion=None,
-        nb_candidate=0,
+        nb_candidate="0",
+        nb_nodes="0",
+        nb_edges="0",
         datapath=None,
     ):
         with open(save_path + self.eval_filename, "a") as file:
@@ -753,6 +738,10 @@ class GRN:
                 + thres_criterion
                 + ","
                 + nb_candidate
+                + ","
+                + nb_nodes
+                + ","
+                + nb_edges
                 + ","
                 + datapath
                 + "\n"
@@ -819,8 +808,24 @@ class GRN:
                         TF1_TF3_inter_node,
                         score=target["gini_score_2"],
                     )
-        print("\n Done generating GRN\n")
-        return len(filtered_table.index)
+        print(
+            "\n Done generating GRN :\n\t- "
+            + str(self.get_number_of_nodes())
+            + " nodes found\n\t- "
+            + str(self.get_number_of_edges())
+            + " edges found\n"
+        )
+        return (
+            len(filtered_table.index),
+            self.get_number_of_nodes(),
+            self.get_number_of_edges(),
+        )
+
+    def get_number_of_nodes(self):
+        return self.G.number_of_nodes()
+
+    def get_number_of_edges(self):
+        return self.G.number_of_edges()
 
     def create_node(
         self, node_name, node_type, node_color=None, node_style=None, node_size=None
@@ -1085,10 +1090,12 @@ class GRN:
                 index_label="source",
             )
 
-    def resume_founded_edges_by_val(self, save_path, which="max"):
+    def resume_founded_edges_by_val(
+        self, save_path, which="max", grn_size_metric="nb_nodes"
+    ):
         eval_table = pd.read_table(save_path + self.eval_filename, header=0, sep=",")
         if which == "max":
-            tg_filename = eval_table.iloc[eval_table["nb_candidate"].idxmax()][
+            tg_filename = eval_table.iloc[eval_table[grn_size_metric].idxmax()][
                 "datapath"
             ]
             print(tg_filename)
@@ -1149,7 +1156,6 @@ class GRN:
             #                 }
             #             )
             #             df.append(missing_inter)
-
             if drop_inter == True:
                 df.drop(
                     df[df["target"].str.contains("-") == True].index,
@@ -1180,6 +1186,7 @@ class GRN:
 
         return matching_target
 
+    # TODO method to update graph based on graph evaluation
     # def update_cytoscape_graph_eval(self, save_path):
     #     list_gene_info = pd.read_table(
     #         self.gene_path + self.eval_score_plot_filename, header=0, sep=","

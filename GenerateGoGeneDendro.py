@@ -1,3 +1,16 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES: This programm is meant to generate GO dendrogram based
+#   on GRN genes using default parameters
+#   (see PARAMETERS/PARAM_CLUST_DEFAULT.txt).
+#   The program GenerateCartTree.py need to be run before running this one.
+# ===============================
+# Change History:
+#
+# # =================================
+
 from lib.cart_class import CART_TREE
 from lib.grn_class import GRN
 from lib.dendrogram_tw_class import DENDROGRAM_TW
