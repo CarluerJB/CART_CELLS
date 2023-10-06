@@ -32,3 +32,6 @@ THRES_ZERO_TE_TR 0.8
 # THRES_PVAL is the minimum pval allow in the filtration
 # step (after apply log10)
 THRES_PVAL 2.0
+
+# Random state
+RANDOM_STATE 42

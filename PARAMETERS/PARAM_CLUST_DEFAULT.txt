@@ -9,7 +9,7 @@ GO_TERM_FMT BP
 PVAL p_uncorrected
 
 # Allow to filter point based on their PVALUE
-PVAL_THRES 0.01
+PVAL_THRES 0.05
 
 # Number of point by tick on X axis (allow to avoid text overlap)
 X_POS_PER_PT 1

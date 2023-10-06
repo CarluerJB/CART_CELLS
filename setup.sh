@@ -1,3 +1,12 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES: Setup and download evertything to be able to run the pipeline
+# ===============================
+# Change History:
+#                  
+# # =================================
 
 PS3='In order to analyse GO term in your data, you must download the most current GO, Please enter your choice: '
 options=("GO" "GO Slim" "Quit")
@@ -43,6 +52,8 @@ do
         "Accept")
             svn export https://github.com/OceaneCsn/AraNetBench.git/trunk/R/evaluateNetwork.R
             svn export https://github.com/OceaneCsn/AraNetBench.git/trunk/data/validated_edges.rda
+            mv evaluateNetwork.R NetworkEvaluation/
+            mv validated_edges.rda NetworkEvaluation/
             break
             ;;
         "Decline")

@@ -1,3 +1,13 @@
+# ===============================
+# AUTHOR     : CARLUER Jean-Baptiste
+# CREATE DATE     : 2022-2023
+# PURPOSE     : Thesis in BioInformatics
+# SPECIAL NOTES:
+# ===============================
+# Change History:
+#
+# # =================================
+
 import sys
 import os
 
