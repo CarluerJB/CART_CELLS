@@ -21,9 +21,9 @@ target_sub_list_path=""
 
 # CART generation
 # With subsetlist of TF
-    ./run_cart_generation.sh $data $out_data $tf_list_path $analysis_type $target_sub_list_path
+#./run_cart_generation.sh $data $out_data $tf_list_path $analysis_type $target_sub_list_path
 # With full data
-# ./run_cart_generation.sh $data $out_data $tf_list_path $analysis_type 
+./run_cart_generation.sh $data $out_data $tf_list_path $analysis_type 
 
 # Gene Ontology analysis by TF generation
 ./run_GO_gene_dendro_generation.sh $out_data
