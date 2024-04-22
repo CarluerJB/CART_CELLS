@@ -269,23 +269,20 @@ class DENDROGRAM_TW:
         plt.savefig(self.path_output, dpi=self.DPI)
 
     # PLOT TF vs Cells using heatmap and dendrograms
-    def plot_clustering_TW(self, log10=True):
+    def plot_clustering_TW(self, log10=True, label_freq=1):
         sys.stdout.write("\r GENERATING TW Clustering ")
         sys.stdout.flush()
         if log10:
             self.GE_TF_matrix = self.GE_TF_matrix.apply(np.log10, axis=1)
             self.GE_TF_matrix.replace(-np.inf, 0, inplace=True)
-        print("1")
         model = AgglomerativeClustering(
             distance_threshold=0, n_clusters=None, linkage="ward"
         )
         model = model.fit(self.GE_TF_matrix)
-        print("2")
         model2 = AgglomerativeClustering(
             distance_threshold=0, n_clusters=None, linkage="ward"
         )
         model2 = model2.fit(self.GE_TF_matrix.transpose())
-        print("3")
         vmin = np.min(self.GE_TF_matrix.to_numpy())
         vmax = np.max(self.GE_TF_matrix.to_numpy())
 
@@ -295,7 +292,6 @@ class DENDROGRAM_TW:
             figsize=(8, 5.6),
             gridspec_kw={"width_ratios": [12, 1], "height_ratios": [12, 2]},
         )
-        print("4")
         a = plot_dendrogram(
             model,
             truncate_mode="level",
@@ -326,7 +322,6 @@ class DENDROGRAM_TW:
             vmin=vmin,
             vmax=vmax,
         )
-        print("5")
         axs[0][0].get_yaxis().set_visible(False)
         axs[0][0].get_xaxis().set_visible(False)
         axs[0][1].get_xaxis().set_visible(False)
@@ -334,10 +329,19 @@ class DENDROGRAM_TW:
         ax1p = axs[0][1].twinx()
         ax1p.get_yaxis().set_visible(True)
         ax1p.set_yticks(
-            [*np.arange(0.5, len(self.GE_TF_matrix.index) + 0.5), 23], minor=False
+            [*np.arange(0.5, len(self.GE_TF_matrix.index)/label_freq + 0.5)], minor=False
         )
         ax1p.set_yticklabels(
-            [*self.GE_TF_matrix.index.to_numpy()[a["leaves"]], ""], fontsize=5
+            [*self.GE_TF_matrix.index.to_numpy()[a["leaves"]]][::label_freq], fontsize=0.5
+        )
+        ax2p = axs[0][0].twinx()
+        ax2p.get_xaxis().set_visible(True)
+        
+        ax2p.set_xticks(
+            [*np.arange(0, len(self.GE_TF_matrix.columns))], minor=False
+        )
+        ax2p.set_xticklabels(
+            [*self.GE_TF_matrix.columns.to_numpy()[a2["leaves"]]], fontsize=5, rotation=45
         )
         axs[1][1].set_axis_off()
 
