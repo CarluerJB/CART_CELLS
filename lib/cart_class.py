@@ -44,6 +44,7 @@ class CART_TREE:
         analysis_type="genes",
         parameter_file_path="PARAMETERS/PARAM_CART_DEFAULT.txt",
         target_sub_list_path=None,
+        create_new_compiled_res_file=True
     ):
         self.SORT_ORDER_REF = {
             "model_score": False,
@@ -63,7 +64,7 @@ class CART_TREE:
         self.THRES_ZERO_TE_TR = 1.0
         self.THRES_PVAL = 3.0
         self.CLASS_WEIGHT = None
-
+        self.create_new_compiled_res_file=create_new_compiled_res_file
         self.parameter_file_path = parameter_file_path
         self.ge_matrix_path = ge_matrix_path
         self.tf_list_path = tf_list_path
@@ -192,6 +193,7 @@ class CART_TREE:
     ## DATA LOADING METHODS
     # Load Gene expression matrix
     # txt and h5 formats are supported
+    # region loag_GE_matrix
     def load_GE_matrix(self):
         data_src_type = self.ge_matrix_path.split(".")[1]
         if data_src_type == "txt":
@@ -215,15 +217,18 @@ class CART_TREE:
             self.save_dir_path + filename, header=0, sep=","
         )
 
+    # region subsample_columns
     def subsample_columns(self, AGI_list):
         self.Y = self.Y[AGI_list]
 
+    # region create_out_dir
     def create_out_dir(self):
         os.makedirs(self.save_dir_path + "score", exist_ok=True)
         os.makedirs(self.save_dir_path + "txt_tree", exist_ok=True)
         os.makedirs(self.save_dir_path + "tree", exist_ok=True)
         os.makedirs(self.save_dir_path + "CARTLUPLOT/", exist_ok=True)
 
+    # region y_to_quantile
     def y_to_quantile(self):
         Y_copy = self.Y.copy(deep=True)
         Y_quant = np.quantile(self.Y.to_numpy().flatten(), [0.33, 0.66, 1.0]).astype(
@@ -233,6 +238,7 @@ class CART_TREE:
         self.Y[(Y_copy <= Y_quant[1]) & (Y_copy >= Y_quant[0])] = 1
         self.Y[(Y_copy <= Y_quant[0])] = 0
 
+    # region eval_model
     def eval_model(self, Y_id=None):
         if Y_id is None:
             Y_single = self.Y
@@ -262,6 +268,7 @@ class CART_TREE:
             "perc_0_total": len(Y_single[Y_single == 0].index) / len(Y_single.index),
         }
 
+    # region generate_CART_tree
     def generate_CART_tree(self, Y_id=None):
         if Y_id is None:
             Y_single = self.Y
@@ -292,8 +299,8 @@ class CART_TREE:
             class_weight=self.CLASS_WEIGHT,
         )
         self.clf = self.clf.fit(self.X, Y_single)
-        print("Done")
 
+    # region compile_cart_results
     def compile_cart_results(self, Y_id, save=True, save_in_mem=True):
         compiled_row = pd.DataFrame(
             {
@@ -736,6 +743,7 @@ class CART_TREE:
         self.end = time.time()
         self._time_per_tree = max(self.end - self.start, self._time_per_tree)
 
+    # region filter_cart_results
     def filter_cart_results(
         self,
         sort_by=[],
@@ -789,11 +797,13 @@ class CART_TREE:
 
     # SAVE METHODS
     # Save compiled results after filter application
+    # region save_filtered_results
     def save_filtered_results(self):
         with open(self.save_dir_path + "filtered_candidates.txt", "w") as file:
             for target_candidates in self.candidate:
                 file.write(target_candidates + "\n")
 
+    # region save_cart_tree
     def save_CART_tree(self, Y_id=None):
         if Y_id is None:
             Y_id = "default"
@@ -847,6 +857,7 @@ class CART_TREE:
             )
 
     # Save plot
+    # region save_cartlu_plot
     def save_cartlu_plot(self, TG):
         # TODO deal with this
         show_first_layer_res = False
@@ -1971,16 +1982,26 @@ class CART_TREE:
             raise (NotImplementedError())
 
     # Save compiled results of CART on each genes
+    # region save_compiled_results
     def save_compiled_results(self, compiled_row=None, append=False):
         if compiled_row is not None:
             if append == True:
-                compiled_row.to_csv(
-                    self.save_dir_path + "compiled_table_a.csv",
-                    header=False,
+                if self.create_new_compiled_res_file:
+                    compiled_row.to_csv(
+                    self.save_dir_path + "compiled_table.csv",
+                    header=True,
                     index=False,
                     sep=",",
-                    mode="a",
-                )
+                    )
+                    self.create_new_compiled_res_file = False
+                else:
+                    compiled_row.to_csv(
+                        self.save_dir_path + "compiled_table.csv",
+                        header=False,
+                        index=False,
+                        sep=",",
+                        mode="a",
+                    )
             else:
                 self.compiled_table.to_csv(
                     self.save_dir_path + "compiled_table.csv",
