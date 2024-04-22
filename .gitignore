@@ -8,7 +8,7 @@ go-basic.obo
 evaluateNetwork.R
 validated_edges.rda
 *.out
-run_local.sh
 runEvaluation.sh
 run_clustering.sh
 run_nitrate.sh
+run local.sh
