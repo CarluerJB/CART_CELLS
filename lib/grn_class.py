@@ -1128,7 +1128,6 @@ class GRN:
         self, sources, drop_inter=False
     ):  # add_inter_to_direct=True):
         matching_target = []
-        print(sources)
         for source in sources:
             df, _, _ = self.to_tables()
             # if add_inter_to_direct:
