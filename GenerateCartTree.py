@@ -65,6 +65,7 @@ cart = CART_TREE(
     out_data,
     analysis_type,
     target_sub_list_path=target_sub_list_path,
+    create_new_compiled_res_file=True
 )
 cart.load_parameter_file()
 cart.show_parameter()
@@ -88,7 +89,7 @@ for target in sub_target_list:
     cart.compile_cart_results(target, save=True, save_in_mem=False)
     cart.save_cartlu_plot(target)
 # Once each compiled result are done and if save in mem is set to False
-cart.load_compiled_results(filename="compiled_table_a.csv")
+cart.load_compiled_results(filename="compiled_table.csv")
 # Apply standard filter
 cart.filter_cart_results()
 cart.save_filtered_results()
